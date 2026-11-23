@@ -161,9 +161,17 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
 .x{background:rgba(120,120,128,.18);box-shadow:none;backdrop-filter:blur(10px)}
 .toast{background:rgba(45,27,94,.88);backdrop-filter:blur(14px)}
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
+.pag span{display:inline-flex;align-items:center;gap:8px;background:#fff;border-radius:14px;padding:8px 14px;box-shadow:0 1px 3px rgba(0,0,0,.05),0 6px 16px rgba(91,45,142,.08);font-weight:700;font-size:.85rem}
+.pag span i{font-size:1.7rem}
+.selo i{width:30px;text-align:center;font-size:1.4rem;color:var(--pv)}
+#pixBox{display:none;text-align:center;margin-top:14px}
+#pixQr{display:inline-block;padding:12px;background:#fff;border-radius:20px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 10px 26px rgba(91,45,142,.14)}
+#pixQr img,#pixQr canvas{display:block}
+#pixCod{width:100%;margin:10px 0 8px;padding:10px;border:0;border-radius:12px;background:rgba(120,120,128,.1);font-size:.72rem;resize:none}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="firebase-config.js"></script>
 </head>
 <body>
@@ -198,7 +206,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
     <div><i class="fas fa-spray-can-sparkles"></i><span><b>Perfumes selecionados</b>fragrâncias para todos os estilos</span></div>
     <div><i class="fas fa-clock"></i><span><b>Envio combinado</b>direto pelo WhatsApp</span></div>
     <div><i class="fab fa-whatsapp"></i><span><b>Pedido no WhatsApp</b>atendimento direto</span></div>
-    <div><i class="fas fa-credit-card"></i><span><b>Até 3× no cartão</b>Pix e boleto</span></div>
+    <div><i class="fas fa-qrcode"></i><span><b>Pague com Pix</b>QR Code na sacolinha</span></div>
   </div>
   </div>
 
@@ -281,6 +289,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
       <input id="nomeCart" placeholder="👤 Seu nome"><input id="cidadeCart" placeholder="📍 Cidade"><input id="enderecoCart" placeholder="🏠 Endereço">
       <p id="contadorEnvio"></p>
       <button class="bw" onclick="finalizarCarrinho()"><i class="fab fa-whatsapp"></i> Finalizar no WhatsApp</button>
+      <button class="bw" id="btnPix" style="display:none;margin-top:8px;background:var(--grad)" onclick="gerarPix()"><i class="fas fa-qrcode"></i> Pagar com Pix (QR Code)</button>
+      <div id="pixBox"><div id="pixQr"></div><p id="pixVal" style="margin-top:8px"></p><textarea id="pixCod" rows="3" readonly aria-label="Código Pix copia e cola"></textarea>
+        <button class="bw" style="background:var(--p)" onclick="copiarPix()"><i class="fas fa-copy"></i> Copiar código Pix</button>
+        <p style="font-size:.8rem;color:var(--g);margin-top:8px">Depois de pagar, envie o comprovante pelo WhatsApp.</p></div>
     </div>
   </div>
 </div>
@@ -288,6 +300,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
 <script>
 /* ===== CONFIG (mesmos valores da loja anterior) ===== */
 const CONFIG={nomeLoja:"Essência Atelier · Perfumes",telefone:"5585999999999",apiProdutos:"produtos.json"};
+var LOJA={};
 const SHEET_API_URL=CONFIG.apiProdutos, TELEFONE=CONFIG.telefone;
 const CATS={feminino:["Feminino","fa-venus"],masculino:["Masculino","fa-mars"],unissex:["Unissex","fa-spray-can-sparkles"],kits:["Kits e presentes","fa-gift"]};
 const PH="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#F2EEF8"/></svg>');
@@ -328,7 +341,7 @@ async function carregarProdutos(){
 
 /* ===== CARD ===== */
 const bc=b=>{b=norm(b);return b.includes("novidade")?"b-n":b.includes("promo")?"b-p":"b-d"};
-const card=(p,i)=>`<article class="pc"><button class="pi" data-open="${i}" aria-label="Ver detalhes de ${esc(p.nome)}">${p.badge?`<span class="bd ${bc(p.badge)}">${esc(p.badge)}</span>`:""}<img src="${esc(p.imagem)}" alt="${esc(p.nome)}" loading="lazy" onerror="this.onerror=null;this.src=PH"></button><div class="pb"><small class="pd">${esc([p.marca,p.ml].filter(Boolean).join(" · "))}</small><h3 data-open="${i}">${esc(p.nome)}</h3><p class="pd">${esc(p.descricao)}</p><div class="pr"><strong>${p.antigo>p.preco?`<s style="font:400 .85rem Nunito;color:var(--g)">${R(p.antigo)}</s> `:""}${R(p.preco)}</strong><small>ou 3× de ${R(p.preco/3)}</small></div><div class="pa"><button class="b2" data-open="${i}">Detalhes</button><button class="b1" data-add="${i}"><i class="fas fa-bag-shopping"></i> Adicionar</button></div></div></article>`;
+const card=(p,i)=>`<article class="pc"><button class="pi" data-open="${i}" aria-label="Ver detalhes de ${esc(p.nome)}">${p.badge?`<span class="bd ${bc(p.badge)}">${esc(p.badge)}</span>`:""}<img src="${esc(p.imagem)}" alt="${esc(p.nome)}" loading="lazy" onerror="this.onerror=null;this.src=PH"></button><div class="pb"><small class="pd">${esc([p.marca,p.ml].filter(Boolean).join(" · "))}</small><h3 data-open="${i}">${esc(p.nome)}</h3><p class="pd">${esc(p.descricao)}</p><div class="pr"><strong>${p.antigo>p.preco?`<s style="font:400 .85rem Nunito;color:var(--g)">${R(p.antigo)}</s> `:""}${R(p.preco)}</strong></div><div class="pa"><button class="b2" data-open="${i}">Detalhes</button><button class="b1" data-add="${i}"><i class="fas fa-bag-shopping"></i> Adicionar</button></div></div></article>`;
 
 /* ===== RENDER ===== */
 function listaCats(){const f=Object.keys(CATS).filter(c=>produtos.some(p=>p.categoria===c));produtos.forEach(p=>{if(p.categoria&&!f.includes(p.categoria))f.push(p.categoria)});return f}
@@ -374,7 +387,7 @@ new IntersectionObserver(en=>en.forEach(x=>{if(x.isIntersecting&&$("verMaisBtn")
 
 /* ===== DETALHE DO PRODUTO ===== */
 function precoAtual(){const p=produtos[cur];const v=p.variacoes[$("variacao").selectedIndex];return(v&&v.preco!=null&&!isNaN(v.preco))?v.preco:p.preco}
-function atualizarTotal(){const pr=precoAtual();$("modalPreco").innerHTML=`${R(pr)}<small>ou 3× de ${R(pr/3)}</small>`;$("total").innerHTML=`Valor: <b>${R(pr*qtdAtual)}</b>`;$("qtdModal").textContent=qtdAtual}
+function atualizarTotal(){const pr=precoAtual();$("modalPreco").innerHTML=R(pr);$("total").innerHTML=`Valor: <b>${R(pr*qtdAtual)}</b>`;$("qtdModal").textContent=qtdAtual}
 function abrirProduto(i,push=true){
   const p=produtos[i];if(!p)return;cur=i;qtdAtual=1;
   $("produtoNome").textContent=p.nome;$("modalDesc").textContent=p.descricao;
@@ -431,7 +444,7 @@ function renderCarrinho(){
     el.innerHTML=`<div class="item-header"><img src="${esc(it.imagem)}" alt="${esc(it.nome)}" onerror="this.onerror=null;this.src=PH"><div style="flex:1"><div class="item-nome">${esc(it.nome)}</div><div class="item-desc">${esc(it.obs?"📝 "+it.obs:it.descricao||"Sem descrição")}</div><div class="item-preco">${R(it.preco)}</div></div></div><div class="item-footer"><div class="qc"><button onclick="diminuirQtd(${i})" aria-label="Diminuir">−</button><span>${it.qtd}</span><button onclick="aumentarQtd(${i})" aria-label="Aumentar">+</button></div><div>Subtotal: ${R(sub)}</div></div><button class="btn-remover" onclick="removerItem(${i})">🗑️ Remover</button>`;
     l.appendChild(el);
   });
-  $("totalCarrinho").innerHTML=`Total: ${R(total)}`;
+  $("totalCarrinho").innerHTML=`Total: ${R(total)}`;window._tot=total;$("pixBox").style.display="none";$("btnPix").style.display=LOJA.pixChave&&total>0?"flex":"none";
 }
 function aumentarQtd(i){carrinho[i].qtd++;renderCarrinho();atualizarCarrinhoUI()}
 function diminuirQtd(i){carrinho[i].qtd>1?carrinho[i].qtd--:carrinho.splice(i,1);renderCarrinho();atualizarCarrinhoUI()}
@@ -480,11 +493,38 @@ function finalizarCarrinho(){
 })();
 
 /* ===== PAGAMENTO, SELOS, LINKS WHATSAPP, INIT ===== */
-$("pagamentos").innerHTML=[["196578","Visa"],["196561","Mastercard"],["196539","Amex"],["196565","PayPal"],["5968/5968299","PIX"],["633/633611","Boleto"]].map(([n,a])=>`<img src="https://cdn-icons-png.flaticon.com/512/${n.includes("/")?n:"196/"+n}.png" alt="${a}" loading="lazy">`).join("");
-$("selos").innerHTML=[["3064/3064197","Site Seguro SSL"],["2702/2702602","Proteção de Dados"],["190/190411","Compra Garantida"],["1828/1828884","Avaliações Verificadas"],["733/733585","Suporte WhatsApp"],["565/565547","Pagamento Seguro"]].map(([n,t])=>`<div class="selo"><img src="https://cdn-icons-png.flaticon.com/512/${n}.png" alt="" loading="lazy"><span>${t}</span></div>`).join("");
+$("pagamentos").innerHTML=[["fa-brands fa-cc-visa","Visa","#1a1f71"],["fa-brands fa-cc-mastercard","Mastercard","#eb001b"],["fa-brands fa-cc-amex","Amex","#2e77bb"],["fa-brands fa-cc-paypal","PayPal","#003087"],["fa-brands fa-pix","Pix","#32bcad"],["fa-solid fa-barcode","Boleto","#444"]].map(([i,a,c])=>`<span><i class="${i}" style="color:${c}"></i>${a}</span>`).join("");
+$("selos").innerHTML=[["fa-lock","Site Seguro SSL"],["fa-shield-halved","Proteção de Dados"],["fa-circle-check","Compra Garantida"],["fa-star","Avaliações Verificadas"],["fa-headset","Suporte WhatsApp"],["fa-credit-card","Pagamento Seguro"]].map(([i,t])=>`<div class="selo"><i class="fas ${i}"></i><span>${t}</span></div>`).join("");
 document.querySelectorAll("[data-wa]").forEach(a=>a.href=`https://wa.me/${TELEFONE}`);
 $("tituloLoja").innerText=CONFIG.nomeLoja;
 atualizarCarrinhoUI();
+/* ===== LOGO + PIX (config/loja no Firestore, editado no painel) ===== */
+async function carregarConfig(){
+  try{const d=await db.collection("config").doc("loja").get();if(!d.exists)return;LOJA=d.data()||{};
+    if(LOJA.logo){const a=document.querySelector("a.logo");a.innerHTML=`<img src="${LOJA.logo}" alt="${esc(CONFIG.nomeLoja)}" style="height:48px;width:auto;display:block">`;a.style.cssText="display:flex;align-items:center"}
+    if(typeof renderCarrinho==="function")renderCarrinho();
+  }catch(e){}
+}
+const tlv=(id,v)=>id+String(v.length).padStart(2,"0")+v;
+function crc16(t){let c=0xFFFF;for(let i=0;i<t.length;i++){c^=t.charCodeAt(i)<<8;for(let j=0;j<8;j++)c=c&0x8000?((c<<1)^0x1021)&0xFFFF:(c<<1)&0xFFFF}return c.toString(16).toUpperCase().padStart(4,"0")}
+function pixPayload(chave,nome,cidade,valor){
+  const lim=x=>String(x||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^A-Za-z0-9 ]/g,"").toUpperCase().trim();
+  let p=tlv("00","01")+tlv("26",tlv("00","br.gov.bcb.pix")+tlv("01",chave))+tlv("52","0000")+tlv("53","986")+tlv("54",valor.toFixed(2))+tlv("58","BR")+tlv("59",lim(nome).slice(0,25)||"LOJA")+tlv("60",lim(cidade).slice(0,15)||"FORTALEZA")+tlv("62",tlv("05","***"))+"6304";
+  return p+crc16(p);
+}
+function gerarPix(){
+  const t=window._tot||0;if(!LOJA.pixChave||t<=0)return toast("Pix indisponível");
+  if(typeof QRCode==="undefined")return toast("Não foi possível gerar o QR Code. Atualize a página.");
+  const cod=pixPayload(LOJA.pixChave,LOJA.pixNome||CONFIG.nomeLoja,LOJA.pixCidade,t);
+  $("pixQr").innerHTML="";new QRCode($("pixQr"),{text:cod,width:220,height:220,correctLevel:QRCode.CorrectLevel.M});
+  $("pixCod").value=cod;$("pixVal").innerHTML=`Valor: <b>${R(t)}</b>`;$("pixBox").style.display="block";
+  $("pixBox").scrollIntoView({behavior:"smooth",block:"nearest"});
+}
+function copiarPix(){
+  const t=$("pixCod");t.select();
+  (navigator.clipboard?navigator.clipboard.writeText(t.value):Promise.reject()).catch(()=>document.execCommand("copy")).then(()=>toast("Código Pix copiado"));
+}
+carregarConfig();
 carregarProdutos();
 </script>
 </body>

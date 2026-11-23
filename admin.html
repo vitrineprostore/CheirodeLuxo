@@ -57,6 +57,8 @@ textarea{resize:vertical;min-height:70px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(45,27,94,.92);backdrop-filter:blur(12px);color:#fff;padding:12px 22px;border-radius:99px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;font-weight:700}
 .toast.on{opacity:1}.toast.er{background:rgba(217,45,32,.95)}
 @media(max-width:600px){.g2,.g3{grid-template-columns:1fr}.pr{flex-wrap:wrap}.seg button{padding:7px 10px;font-size:.82rem}}
+.bar{flex-wrap:wrap}.bar .btn.o{background:rgba(255,255,255,.18);color:#fff}
+@media(max-width:600px){.bar h1{font-size:1rem}.seg{order:3;flex:1 1 100%}.seg button{flex:1;padding:7px 4px}}
 </style>
 </head>
 <body>
@@ -70,7 +72,7 @@ textarea{resize:vertical;min-height:70px}
 
 <div id="vApp" style="display:none">
   <div class="bar"><h1>Painel · Essência Atelier</h1>
-    <div class="seg"><button class="on" data-tab="Produtos">Produtos</button><button data-tab="Banners">Banners</button><button data-tab="Banco">Imagens</button></div>
+    <div class="seg"><button class="on" data-tab="Produtos">Produtos</button><button data-tab="Banners">Banners</button><button data-tab="Banco">Imagens</button><button data-tab="Loja">Loja</button></div>
     <button class="btn o s" onclick="auth.signOut()">Sair</button></div>
   <div class="main">
     <section id="tProdutos">
@@ -80,6 +82,18 @@ textarea{resize:vertical;min-height:70px}
     <section id="tBanners" hidden>
       <div class="row"><div><b style="font-size:1.2rem">Banners do site</b><div class="hint">Proporção ideal 1529 × 1028. Envie antes na aba Imagens.</div></div><span style="display:flex;gap:8px"><button class="btn o" onclick="addB()">Adicionar</button><button class="btn" id="bb" onclick="salvarBanners()">Salvar banners</button></span></div>
       <div class="lp" id="lbn"></div>
+    </section>
+    <section id="tLoja" hidden>
+      <div class="card" style="margin-bottom:14px"><b style="font-size:1.2rem">Logo do topo do site</b>
+        <div class="hint" style="margin:4px 0 12px">PNG com fundo transparente fica melhor. A logo é reduzida automaticamente.</div>
+        <div style="background:linear-gradient(135deg,#7B2FBE,#2D1B5E);border-radius:18px;padding:16px;text-align:center;min-height:90px"><img id="lgp" alt="Logo" style="display:none;max-height:90px;max-width:100%;margin:auto"><span id="lgv" class="hint" style="color:#fff"></span></div>
+        <div class="row" style="margin:12px 0 0"><span style="display:flex;gap:8px"><label class="btn o s" for="lgf" style="margin:0;cursor:pointer;color:var(--pe)">Enviar logo</label><button class="btn r s" onclick="remLogo()">Remover</button></span></div>
+        <input id="lgf" type="file" accept="image/*" hidden></div>
+      <div class="card"><b style="font-size:1.2rem">Pix da loja</b>
+        <div class="hint" style="margin:4px 0 12px">Usado para gerar o QR Code com o valor total da sacolinha. Deixe a chave vazia para desativar.</div>
+        <div class="f"><label for="px1">Chave Pix</label><input id="px1" placeholder="CPF/CNPJ só números, e-mail, +5585999999999 ou chave aleatória" autocomplete="off"></div>
+        <div class="g2"><div class="f"><label for="px2">Nome do recebedor</label><input id="px2" maxlength="25" placeholder="Nome como no banco"></div><div class="f"><label for="px3">Cidade</label><input id="px3" maxlength="15" placeholder="Fortaleza"></div></div></div>
+      <div class="row" style="margin:14px 0 0"><span></span><button class="btn" id="bls" onclick="salvarLoja()">Salvar logo e Pix</button></div>
     </section>
     <section id="tBanco" hidden>
       <div class="row"><b style="font-size:1.2rem">Banco de imagens</b><span class="hint" id="bc"></span></div>
@@ -136,7 +150,7 @@ function msg(e){const c=e.code||"";
   return e.message||"Erro inesperado"}
 
 const auth=firebase.auth();
-let prods=[],banners=[],bDel=[],imgs=[],edit=-1,imgSel="",imgId="",pickCb=null;
+let cfg={},logoNovo="",prods=[],banners=[],bDel=[],imgs=[],edit=-1,imgSel="",imgId="",pickCb=null;
 auth.onAuthStateChanged(u=>{
   $("vLogin").style.display=u?"none":"grid";$("vApp").style.display=u?"block":"none";
   if(u)iniciar();
@@ -148,9 +162,9 @@ function entrar(){
 $("ls").addEventListener("keydown",e=>{if(e.key==="Enter")entrar()});
 async function iniciar(){
   try{
-    const [a,b,c]=await Promise.all([db.collection("produtos").get(),db.collection("banners").get(),db.collection("imagens").orderBy("criado","desc").get()]);
+    const [a,b,c,cf]=await Promise.all([db.collection("produtos").get(),db.collection("banners").get(),db.collection("imagens").orderBy("criado","desc").get(),db.collection("config").doc("loja").get()]);cfg=cf.exists?cf.data():{};
     prods=a.docs.map(d=>d.data()).sort(ord);banners=b.docs.map(d=>({id:d.id,...d.data()})).sort(ord);bDel=[];
-    imgs=c.docs.map(d=>({id:d.id,...d.data()}));rProds();rBanners();rImgs();
+    imgs=c.docs.map(d=>({id:d.id,...d.data()}));rProds();rBanners();rImgs();rLoja();
   }catch(e){toast(msg(e),1)}
 }
 document.querySelectorAll("[data-tab]").forEach(b=>b.onclick=()=>{
@@ -244,6 +258,27 @@ async function salvarBanners(){
     banners.forEach((x,i)=>b.set(db.collection("banners").doc(x.id),{imagem:x.imagem,link:x.link||"",ordem:i}));
     await b.commit();bDel=[];toast("Banners salvos. Já estão no site.")}catch(e){toast(msg(e),1)}
   $("bb").disabled=false;
+}
+
+/* ===== LOJA: logo + Pix ===== */
+function logoComprimir(src,max){
+  return new Promise((ok,no)=>{const im=new Image();
+    im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement("canvas");c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+      c.getContext("2d").drawImage(im,0,0,c.width,c.height);let d=c.toDataURL("image/webp",.9);if(!d.startsWith("data:image/webp"))d=c.toDataURL("image/png");ok(d)};
+    im.onerror=()=>no(new Error("Não foi possível ler a imagem"));im.src=src});
+}
+function mostrarLogo(){$("lgp").src=logoNovo;$("lgp").style.display=logoNovo?"block":"none";$("lgv").textContent=logoNovo?"":"Sem logo: o site mostra o nome da loja em texto."}
+function rLoja(){logoNovo=cfg.logo||"";mostrarLogo();$("px1").value=cfg.pixChave||"";$("px2").value=cfg.pixNome||"";$("px3").value=cfg.pixCidade||""}
+$("lgf").onchange=async e=>{const f=e.target.files[0];if(!f)return;
+  try{logoNovo=await logoComprimir(await lerArq(f),520);mostrarLogo();toast("Logo pronta. Toque em Salvar para publicar.")}catch(er){toast(msg(er),1)}e.target.value=""};
+function remLogo(){logoNovo="";mostrarLogo()}
+async function salvarLoja(){
+  let k=$("px1").value.trim();if(!k.includes("@"))k=k.replace(/[\s().-]/g,"");
+  const d={logo:logoNovo,pixChave:k,pixNome:$("px2").value.trim(),pixCidade:$("px3").value.trim()};
+  if(k&&(!d.pixNome||!d.pixCidade))return toast("Informe o nome do recebedor e a cidade do Pix",1);
+  $("bls").disabled=true;
+  try{await db.collection("config").doc("loja").set(d,{merge:true});cfg={...cfg,...d};toast("Salvo. Já está no site.")}catch(e){toast(msg(e),1)}
+  $("bls").disabled=false;
 }
 </script>
 </body>
