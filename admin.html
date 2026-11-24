@@ -133,7 +133,7 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
       </section>
 
       <section id="v_categorias" hidden>
-        <div class="row"><span class="hint">Renomear uma categoria atualiza todos os produtos dela na vitrine.</span><button class="btn" onclick="novaCat()">Nova categoria</button></div>
+        <div class="row"><span class="hint">Renomear uma categoria atualiza todos os produtos dela na vitrine.</span><span class="tools"><button class="btn o" id="prU" onclick="desfazerPrecos()" hidden>Desfazer último ajuste de preços</button><button class="btn" onclick="novaCat()">Nova categoria</button></span></div>
         <div class="card tw"><table><thead><tr><th>Categoria</th><th>Produtos</th><th>Ativos</th><th>Preço médio</th><th></th></tr></thead><tbody id="tc"></tbody></table></div>
       </section>
 
@@ -197,6 +197,13 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
   <div class="f"><label for="fx">Tamanhos com preço (opcional)</label><textarea id="fx" placeholder="30ml=89,90&#10;50ml=129,90&#10;100ml=189,90"></textarea><div class="hint">Um por linha: tamanho=preço. Se preencher, o cliente escolhe o tamanho no site.</div></div>
   <div class="row" style="margin:8px 0 0"><button class="btn r s" id="bx" onclick="excluir()">Excluir</button><span class="tools"><button class="btn o" onclick="fecharM('mP')">Cancelar</button><button class="btn" id="bs" onclick="salvarProd()">Salvar</button></span></div>
 </div></div>
+<div id="mPr" class="ov"><div class="mb" style="max-width:540px"><h3 id="prT">Ajustar preços</h3>
+  <div class="g2"><div class="f"><label for="prM">Operação</label><select id="prM"><option value="pu">Aumentar (%)</option><option value="pd">Diminuir (%)</option><option value="su">Somar (R$)</option><option value="sd">Subtrair (R$)</option><option value="fx">Definir preço único (R$)</option></select></div>
+  <div class="f"><label for="prV">Valor</label><input id="prV" inputmode="decimal" placeholder="10"></div></div>
+  <label style="display:flex;gap:8px;align-items:center;font-weight:500;color:var(--t);margin-bottom:8px"><input type="checkbox" id="prZ" checked> Aplicar também nos tamanhos (variações)</label>
+  <label style="display:flex;gap:8px;align-items:center;font-weight:500;color:var(--t)"><input type="checkbox" id="prA"> Guardar o preço atual como "preço antigo" (aparece riscado na loja)</label>
+  <div class="card" style="margin:12px 0;padding:12px;background:var(--bg);box-shadow:none"><b>Prévia</b><div id="prP" class="tw" style="margin-top:6px"></div></div>
+  <div class="row" style="margin:0"><span class="hint" id="prN"></span><span class="tools"><button class="btn o" onclick="fecharM('mPr')">Cancelar</button><button class="btn" id="prB" onclick="aplicarPrecos()">Aplicar</button></span></div></div></div>
 <div id="mI" class="ov"><div class="mb"><h3>Escolher imagem</h3><div class="ig pick" id="pk"></div>
   <div class="row" style="margin:14px 0 0"><span class="hint">Não achou? Envie na aba Imagens.</span><button class="btn o" onclick="fecharM('mI')">Fechar</button></div></div></div>
 <div class="toast" id="toast" role="status"></div>
@@ -308,7 +315,7 @@ const allCats=()=>[...new Set([...(cfg.categorias||DEFCATS),...prods.map(p=>p.ca
 function fillCats(){const o=allCats().map(c=>`<option value="${esc(c)}">${esc(catN(c))}</option>`).join("");$("fc").innerHTML=o;$("fcat").innerHTML='<option value="">Todas as categorias</option>'+o}
 function rCats(){
   $("tc").innerHTML=allCats().map(c=>{const l=prods.filter(p=>p.categoria===c),a=l.filter(p=>p.ativo!==false).length,m=l.length?l.reduce((s,p)=>s+(+p.preco||0),0)/l.length:0;
-    return`<tr><td><b>${esc(catN(c))}</b></td><td>${l.length}</td><td>${a}</td><td>${l.length?R(m):"-"}</td><td style="text-align:right;white-space:nowrap"><button class="btn o s" data-c="${esc(c)}" onclick="renCat(this.dataset.c)">Renomear</button> <button class="btn r s" data-c="${esc(c)}" onclick="delCat(this.dataset.c)" ${l.length?"disabled":""}>Excluir</button></td></tr>`}).join("");
+    return`<tr><td><b>${esc(catN(c))}</b></td><td>${l.length}</td><td>${a}</td><td>${l.length?R(m):"-"}</td><td style="text-align:right;white-space:nowrap"><button class="btn o s" data-c="${esc(c)}" onclick="abrirPrecos(this.dataset.c)" ${l.length?"":"disabled"}>Preços</button> <button class="btn o s" data-c="${esc(c)}" onclick="renCat(this.dataset.c)">Renomear</button> <button class="btn r s" data-c="${esc(c)}" onclick="delCat(this.dataset.c)" ${l.length?"disabled":""}>Excluir</button></td></tr>`}).join("");
 }
 async function salvarCats(l){await db.collection("config").doc("loja").set({categorias:l},{merge:true});cfg.categorias=l;fillCats();rCats()}
 async function novaCat(){const n=catKey(prompt("Nome da nova categoria:")||"");if(!n)return;if(allCats().includes(n))return toast("Essa categoria já existe",1);
@@ -318,6 +325,34 @@ async function renCat(c){const n=catKey(prompt("Novo nome para "+catN(c)+":",cat
     await salvarCats(allCats().map(x=>x===c?n:x).filter((x,i,a)=>a.indexOf(x)===i));toast("Categoria renomeada. Vitrine atualizada.")}catch(e){toast(msg(e),1)}}
 async function delCat(c){if(prods.some(p=>p.categoria===c)||!confirm("Excluir a categoria "+catN(c)+"?"))return;
   try{await salvarCats(allCats().filter(x=>x!==c));toast("Categoria excluída")}catch(e){toast(msg(e),1)}}
+
+/* ===== PREÇOS EM LOTE POR CATEGORIA ===== */
+let prCat="",lastPr=null;
+const calcP=(v,m,x)=>Math.round((m==="pu"?v*(1+x/100):m==="pd"?v*(1-x/100):m==="su"?v+x:m==="sd"?v-x:x)*100)/100;
+function planoPrecos(){const x=num($("prV").value),m=$("prM").value;
+  return prods.filter(p=>p.categoria===prCat).map(p=>({p,novo:calcP(+p.preco||0,m,x),vs:$("prZ").checked&&m!=="fx"?(p.variacoes||[]).map(v=>({...v,preco:v.preco!=null?calcP(+v.preco,m,x):v.preco})):(p.variacoes||[])}))}
+function prevPrecos(){const pl=planoPrecos(),x=num($("prV").value),bad=!x||pl.some(i=>i.novo<=0||i.vs.some(v=>v.preco!=null&&v.preco<=0));
+  $("prZ").disabled=$("prM").value==="fx";
+  $("prP").innerHTML=!x?'<span class="hint">Informe o valor para ver a prévia.</span>':`<table><tbody>${pl.slice(0,6).map(i=>`<tr><td>${esc(i.p.nome)}</td><td style="white-space:nowrap">${R(i.p.preco)} → <b>${R(i.novo)}</b></td></tr>`).join("")}</tbody></table>${pl.length>6?`<div class="hint" style="margin-top:6px">e mais ${pl.length-6} produtos</div>`:""}`;
+  $("prN").textContent=bad&&x?"Algum preço ficaria zero ou negativo.":`${pl.length} produtos da categoria (inclui ocultos)`;$("prB").disabled=bad;return pl}
+function abrirPrecos(c){prCat=c;$("prT").textContent="Ajustar preços · "+catN(c);$("prV").value="";$("prA").checked=false;$("prZ").checked=true;$("prM").value="pu";prevPrecos();$("mPr").style.display="flex"}
+["prM","prV","prZ"].forEach(i=>$(i).addEventListener("input",prevPrecos));
+async function aplicarPrecos(){
+  const pl=prevPrecos();if(!num($("prV").value)||$("prB").disabled)return;
+  if(!confirm(`Alterar o preço de ${pl.length} produtos da categoria ${catN(prCat)}?`))return;
+  const guard=$("prA").checked,snap=pl.map(i=>({p:i.p,preco:i.p.preco,antigo:i.p.precoAntigo||0,vs:i.p.variacoes||[]}));
+  $("prB").disabled=true;$("prB").textContent="Aplicando…";
+  try{for(let k=0;k<pl.length;k+=400){const b=db.batch();pl.slice(k,k+400).forEach(i=>b.update(db.collection("produtos").doc(i.p._doc),{preco:i.novo,variacoes:i.vs,...(guard?{precoAntigo:i.p.preco}:{})}));await b.commit()}
+    pl.forEach(i=>{if(guard)i.p.precoAntigo=i.p.preco;i.p.preco=i.novo;i.p.variacoes=i.vs});lastPr=snap;$("prU").hidden=false;
+    fecharM("mPr");rCats();toast(`Preços de ${pl.length} produtos atualizados. Já estão na vitrine.`)}
+  catch(e){toast(msg(e)+" Alguns preços podem ter sido alterados; confira em Produtos.",1)}
+  $("prB").textContent="Aplicar";prevPrecos();
+}
+async function desfazerPrecos(){
+  if(!lastPr||!confirm("Voltar os preços de "+lastPr.length+" produtos ao valor anterior?"))return;
+  try{for(let k=0;k<lastPr.length;k+=400){const b=db.batch();lastPr.slice(k,k+400).forEach(s=>b.update(db.collection("produtos").doc(s.p._doc),{preco:s.preco,precoAntigo:s.antigo,variacoes:s.vs}));await b.commit()}
+    lastPr.forEach(s=>{s.p.preco=s.preco;s.p.precoAntigo=s.antigo;s.p.variacoes=s.vs});lastPr=null;$("prU").hidden=true;rCats();toast("Preços restaurados")}catch(e){toast(msg(e),1)}
+}
 
 /* ===== PRODUTOS ===== */
 function rProds(){
