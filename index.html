@@ -3,15 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title id="tituloLoja">Essência Atelier · Perfumes</title>
+<title id="tituloLoja">Cheiro de Luxo · Perfumes</title>
 <meta name="description" content="Perfumes femininos, masculinos e unissex. Peça pelo WhatsApp.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 <style>
-:root{--p:#5B2D8E;--pv:#7B2FBE;--pe:#2D1B5E;--pl:#C39BD3;--o:#F5820A;--y:#FFD000;--bg:#FAF8FF;--t:#1A1225;--g:#5a5568;--l:#F2EEF8;--bd:#E8DEF3;--wa:#1FA855;
---grad:linear-gradient(135deg,#7B2FBE,#5B2D8E 50%,#2D1B5E);--gl:linear-gradient(135deg,#FFD000,#F5820A 60%,#E65C00)}
+:root{--p:#5B2D8E;--pv:#7B2FBE;--pe:#2D1B5E;--pl:#C39BD3;--o:#B8923F;--y:#E6CC8A;--bg:#FAF8FF;--t:#1A1225;--g:#5a5568;--l:#F2EEF8;--bd:#E8DEF3;--wa:#1FA855;
+--grad:linear-gradient(135deg,#7B2FBE,#5B2D8E 50%,#2D1B5E);--gl:linear-gradient(135deg,#E6CC8A,#C9A24B 60%,#9a7728)}
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html{scroll-behavior:smooth;scroll-padding-top:120px}
 body{font-family:Nunito,sans-serif;background:var(--bg);color:var(--t);overflow-x:hidden;line-height:1.5}
@@ -168,11 +168,13 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
 #pixQr{display:inline-block;padding:12px;background:#fff;border-radius:20px;box-shadow:0 1px 3px rgba(0,0,0,.06),0 10px 26px rgba(91,45,142,.14)}
 #pixQr img,#pixQr canvas{display:block}
 #pixCod{width:100%;margin:10px 0 8px;padding:10px;border:0;border-radius:12px;background:rgba(120,120,128,.1);font-size:.72rem;resize:none}
+.sh h2,.bf h2{font-family:"Playfair Display",Poppins,serif}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="firebase-config.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
 
@@ -180,7 +182,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
 
 <header id="top">
   <div class="hd">
-    <a class="logo" href="#top" aria-label="Essência Atelier" style="color:#fff;font:800 1.45rem Poppins,sans-serif;white-space:nowrap">Essência Atelier</a>
+    <a class="logo" href="#top" aria-label="Cheiro de Luxo" style="color:#fff;font:800 1.45rem Poppins,sans-serif;white-space:nowrap">Cheiro de Luxo</a>
     <form class="busca" id="buscaForm" role="search">
       <i class="fas fa-search" aria-hidden="true"></i>
       <input id="busca" type="search" placeholder="Buscar perfume, marca ou nota…" aria-label="Buscar produtos" autocomplete="off">
@@ -240,12 +242,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
 
 <footer id="contato">
   <div class="fg">
-    <div><h4>Essência Atelier</h4><p>Perfumes femininos, masculinos e unissex com atendimento direto.</p>
-      <div class="so"><a href="tel:+5585999999999" aria-label="Telefone"><i class="fas fa-phone"></i></a><a href="https://instagram.com/essenciaatelier" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a><a data-wa target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a></div></div>
+    <div><h4>Cheiro de Luxo</h4><p>Perfumes femininos, masculinos e unissex com atendimento direto.</p>
+      <div class="so"><a href="tel:+5585999999999" aria-label="Telefone"><i class="fas fa-phone"></i></a><a href="https://instagram.com/cheirodeluxo" target="_blank" rel="noopener" aria-label="Instagram"><i class="fab fa-instagram"></i></a><a data-wa target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a></div></div>
     <div><h4>Explore</h4><div id="fcats"></div></div>
-    <div><h4>Atendimento</h4><a data-wa target="_blank" rel="noopener">WhatsApp</a><a href="tel:+5585999999999">(85) 99999-9999</a><a href="https://instagram.com/essenciaatelier" target="_blank" rel="noopener">@essenciaatelier</a></div>
+    <div><h4>Atendimento</h4><a data-wa target="_blank" rel="noopener">WhatsApp</a><a href="tel:+5585999999999">(85) 99999-9999</a><a href="https://instagram.com/cheirodeluxo" target="_blank" rel="noopener">@cheirodeluxo</a></div>
   </div>
-  <div class="cp"><span>© 2026 Essência Atelier. Todos os direitos reservados</span><span>Desenvolvido por <a href="#" style="display:inline">Two Designer / Grupo Mega</a></span></div>
+  <div class="cp"><span>© 2026 Cheiro de Luxo. Todos os direitos reservados</span><span>Desenvolvido por <a href="#" style="display:inline">Two Designer / Grupo Mega</a></span></div>
 </footer>
 
 <a class="whatsapp" data-wa target="_blank" rel="noopener" aria-label="WhatsApp"><i class="fab fa-whatsapp"></i></a>
@@ -299,9 +301,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
 
 <script>
 /* ===== CONFIG (mesmos valores da loja anterior) ===== */
-const CONFIG={nomeLoja:"Essência Atelier · Perfumes",telefone:"5585999999999",apiProdutos:"produtos.json"};
+const CONFIG={nomeLoja:"Cheiro de Luxo · Perfumes",telefone:"5585999999999",apiProdutos:"produtos.json"};
 var LOJA={};
-const SHEET_API_URL=CONFIG.apiProdutos, TELEFONE=CONFIG.telefone;
+var SHEET_API_URL=CONFIG.apiProdutos, TELEFONE=CONFIG.telefone;
 const CATS={feminino:["Feminino","fa-venus"],masculino:["Masculino","fa-mars"],unissex:["Unissex","fa-spray-can-sparkles"],kits:["Kits e presentes","fa-gift"]};
 const PH="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#F2EEF8"/></svg>');
 const PASO=8;
@@ -418,8 +420,8 @@ function enviarPedido(){
   const nome=$("nomeProduto").value.trim(),cidade=$("cidadeProduto").value.trim(),endereco=$("enderecoProduto").value.trim();
   if(!nome||!cidade||!endereco){alert("Preencha todos os dados");return}
   const p=produtos[cur],v=p.variacoes[$("variacao").selectedIndex],obs=$("obs").value.trim(),total=precoAtual()*qtdAtual;
-  const msg=`✨ *NOVO PEDIDO - Essência Atelier* ✨\n\n🛍️ *Produto:* ${p.nome}${v?" — "+v.nome:""}${qtdAtual>1?" x"+qtdAtual:""}\n💰 *Valor:* ${R(total)}${obs?"\n📝 *Obs:* "+obs:""}\n\n👤 *Cliente:* ${nome}\n📍 *Cidade:* ${cidade}\n🏠 *Endereço:* ${endereco}\n\n━━━━━━━━━━━━━━━━\n✨ Obrigado por escolher a Essência Atelier!`;
-  location.href=`https://wa.me/${TELEFONE}?text=${encodeURIComponent(msg)}`;
+  const msg=`✨ *NOVO PEDIDO - Cheiro de Luxo* ✨\n\n🛍️ *Produto:* ${p.nome}${v?" — "+v.nome:""}${qtdAtual>1?" x"+qtdAtual:""}\n💰 *Valor:* ${R(total)}${obs?"\n📝 *Obs:* "+obs:""}\n\n👤 *Cliente:* ${nome}\n📍 *Cidade:* ${cidade}\n🏠 *Endereço:* ${endereco}\n\n━━━━━━━━━━━━━━━━\n✨ Obrigado por escolher a Cheiro de Luxo!`;
+  Promise.race([registrarPedido([{nome:p.nome+(v?" — "+v.nome:""),qtd:qtdAtual,preco:precoAtual()}],total,cidade),new Promise(r=>setTimeout(r,900))]).then(()=>{location.href=`https://wa.me/${TELEFONE}?text=${encodeURIComponent(msg)}`});
 }
 
 /* ===== CARRINHO ===== */
@@ -459,7 +461,8 @@ function finalizarCarrinho(){
   btn.style.display="none";ce.style.display="block";ce.innerText="🚀 Preparando seu pedido…";
   let total=0,lista="";
   carrinho.forEach(p=>{const s=p.preco*p.qtd;total+=s;lista+=`${p.nome} x${p.qtd} - ${R(s)}${p.obs?" (Obs: "+p.obs+")":""}\n`});
-  const msg=`✨ *NOVO PEDIDO - Essência Atelier* ✨\n\n🛍️ *Pedido:*\n${lista}\n💰 *Total:* ${R(total)}\n\n👤 *Cliente:* ${nome}\n📍 *Cidade:* ${cidade}\n🏠 *Endereço:* ${endereco}\n\n━━━━━━━━━━━━━━━━\n✨ Obrigado por escolher a Essência Atelier!`;
+  const msg=`✨ *NOVO PEDIDO - Cheiro de Luxo* ✨\n\n🛍️ *Pedido:*\n${lista}\n💰 *Total:* ${R(total)}\n\n👤 *Cliente:* ${nome}\n📍 *Cidade:* ${cidade}\n🏠 *Endereço:* ${endereco}\n\n━━━━━━━━━━━━━━━━\n✨ Obrigado por escolher a Cheiro de Luxo!`;
+  registrarPedido(carrinho,total,cidade);
   let t=5;const iv=setInterval(()=>{
     ce.innerText=`🚀 Enviando seu pedido (${t}s)`;t--;
     if(t<0){clearInterval(iv);carrinho=[];atualizarCarrinhoUI();renderCarrinho();["nomeCart","cidadeCart","enderecoCart"].forEach(k=>$(k).value="");ce.style.display="none";btn.style.display="flex";fecharCarrinho();location.href=`https://wa.me/${TELEFONE}?text=${encodeURIComponent(msg)}`}
@@ -499,9 +502,13 @@ document.querySelectorAll("[data-wa]").forEach(a=>a.href=`https://wa.me/${TELEFO
 $("tituloLoja").innerText=CONFIG.nomeLoja;
 atualizarCarrinhoUI();
 /* ===== LOGO + PIX (config/loja no Firestore, editado no painel) ===== */
+function registrarPedido(itens,total,cidade){
+  return new Promise(ok=>{try{db.collection("pedidos").add({data:Date.now(),total:Math.round(total*100)/100,cidade:String(cidade||"").slice(0,40),itens:itens.slice(0,50).map(i=>({nome:String(i.nome).slice(0,80),qtd:+i.qtd||1,preco:+i.preco||0}))}).then(ok,ok)}catch(e){ok()}})}
 async function carregarConfig(){
   try{const d=await db.collection("config").doc("loja").get();if(!d.exists)return;LOJA=d.data()||{};
     if(LOJA.logo){const a=document.querySelector("a.logo");a.innerHTML=`<img src="${LOJA.logo}" alt="${esc(CONFIG.nomeLoja)}" style="height:48px;width:auto;display:block">`;a.style.cssText="display:flex;align-items:center"}
+    if(LOJA.whatsapp){const d=String(LOJA.whatsapp);TELEFONE=d;document.querySelectorAll("[data-wa]").forEach(a=>a.href=`https://wa.me/${d}`);document.querySelectorAll('a[href^="tel:"]').forEach(a=>{a.href="tel:+"+d;if(!a.querySelector("i")&&d.length>=12)a.textContent=`(${d.slice(2,4)}) ${d.slice(4,-4)}-${d.slice(-4)}`})}
+    if(LOJA.instagram)document.querySelectorAll('a[href*="instagram.com"]').forEach(a=>{a.href="https://instagram.com/"+LOJA.instagram;if(!a.querySelector("i"))a.textContent="@"+LOJA.instagram});
     if(typeof renderCarrinho==="function")renderCarrinho();
   }catch(e){}
 }
