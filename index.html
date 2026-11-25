@@ -370,7 +370,7 @@ function renderCatalogo(){
   $("verMaisBtn").style.display=visiveis>=l.length?"none":"inline-block";
   document.querySelectorAll("#filtroContainer button").forEach(b=>b.classList.toggle("ativo",b.dataset.cat===cat));
 }
-function filtrar(c,rolar){cat=c;if(c==="todos"){q="";$("busca").value=""}visiveis=PASO;renderCatalogo();if(rolar)$("catalogo-sec").scrollIntoView({behavior:"smooth"})}
+function filtrar(c,rolar){cat=c;if(c==="todos"){q="";$("busca").value=""}visiveis=PASO;renderCatalogo();if(rolar)irPara($("catalogo-sec"))}
 
 /* ===== EVENTOS (delegação) ===== */
 document.addEventListener("click",e=>{
@@ -382,7 +382,7 @@ document.addEventListener("click",e=>{
 });
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){fecharModal();fecharCarrinho()}});
 $("busca").addEventListener("input",e=>{q=norm(e.target.value.trim());cat="todos";visiveis=PASO;renderCatalogo()});
-$("buscaForm").addEventListener("submit",e=>{e.preventDefault();$("catalogo-sec").scrollIntoView({behavior:"smooth"});$("busca").blur()});
+$("buscaForm").addEventListener("submit",e=>{e.preventDefault();irPara($("catalogo-sec"));$("busca").blur()});
 $("ordem").addEventListener("change",e=>{ordem=e.target.value;visiveis=PASO;renderCatalogo()});
 $("verMaisBtn").addEventListener("click",()=>{visiveis+=PASO;renderCatalogo()});
 new IntersectionObserver(en=>en.forEach(x=>{if(x.isIntersecting&&$("verMaisBtn").style.display!=="none")$("verMaisBtn").click()}),{rootMargin:"200px"}).observe($("verMaisBtn"));
@@ -419,9 +419,9 @@ function addDoModal(){
 function enviarPedido(){
   const nome=$("nomeProduto").value.trim(),cidade=$("cidadeProduto").value.trim(),endereco=$("enderecoProduto").value.trim();
   if(!nome||!cidade||!endereco){alert("Preencha todos os dados");return}
-  const p=produtos[cur],v=p.variacoes[$("variacao").selectedIndex],obs=$("obs").value.trim(),total=precoAtual()*qtdAtual;
-  const msg=`✨ *NOVO PEDIDO - Cheiro de Luxo* ✨\n\n🛍️ *Produto:* ${p.nome}${v?" — "+v.nome:""}${qtdAtual>1?" x"+qtdAtual:""}\n💰 *Valor:* ${R(total)}${obs?"\n📝 *Obs:* "+obs:""}\n\n👤 *Cliente:* ${nome}\n📍 *Cidade:* ${cidade}\n🏠 *Endereço:* ${endereco}\n\n━━━━━━━━━━━━━━━━\n✨ Obrigado por escolher a Cheiro de Luxo!`;
-  Promise.race([registrarPedido([{nome:p.nome+(v?" — "+v.nome:""),qtd:qtdAtual,preco:precoAtual()}],total,cidade),new Promise(r=>setTimeout(r,900))]).then(()=>{location.href=`https://wa.me/${TELEFONE}?text=${encodeURIComponent(msg)}`});
+  const p=produtos[cur],v=p.variacoes[$("variacao").selectedIndex],obs=$("obs").value.trim(),total=precoAtual()*qtdAtual,cod=novoCodigo();
+  const msg=`✨ *NOVO PEDIDO - Cheiro de Luxo* ✨\n🔖 *Código:* ${cod}\n\n🛍️ *Produto:* ${p.nome}${v?" — "+v.nome:""}${qtdAtual>1?" x"+qtdAtual:""}\n💰 *Valor:* ${R(total)}${obs?"\n📝 *Obs:* "+obs:""}\n\n👤 *Cliente:* ${nome}\n📍 *Cidade:* ${cidade}\n🏠 *Endereço:* ${endereco}\n\n━━━━━━━━━━━━━━━━\n✨ Obrigado por escolher a Cheiro de Luxo!`;
+  Promise.race([registrarPedido([{nome:p.nome+(v?" — "+v.nome:""),qtd:qtdAtual,preco:precoAtual()}],total,cidade,cod),new Promise(r=>setTimeout(r,900))]).then(()=>{location.href=`https://wa.me/${TELEFONE}?text=${encodeURIComponent(msg)}`});
 }
 
 /* ===== CARRINHO ===== */
@@ -459,10 +459,10 @@ function finalizarCarrinho(){
   if(!carrinho.length){alert("Carrinho vazio");return}
   const ce=$("contadorEnvio"),btn=document.querySelector("#modalCarrinho .bw");
   btn.style.display="none";ce.style.display="block";ce.innerText="🚀 Preparando seu pedido…";
-  let total=0,lista="";
+  let total=0,lista="";const cod=novoCodigo();
   carrinho.forEach(p=>{const s=p.preco*p.qtd;total+=s;lista+=`${p.nome} x${p.qtd} - ${R(s)}${p.obs?" (Obs: "+p.obs+")":""}\n`});
-  const msg=`✨ *NOVO PEDIDO - Cheiro de Luxo* ✨\n\n🛍️ *Pedido:*\n${lista}\n💰 *Total:* ${R(total)}\n\n👤 *Cliente:* ${nome}\n📍 *Cidade:* ${cidade}\n🏠 *Endereço:* ${endereco}\n\n━━━━━━━━━━━━━━━━\n✨ Obrigado por escolher a Cheiro de Luxo!`;
-  registrarPedido(carrinho,total,cidade);
+  const msg=`✨ *NOVO PEDIDO - Cheiro de Luxo* ✨\n🔖 *Código:* ${cod}\n\n🛍️ *Pedido:*\n${lista}\n💰 *Total:* ${R(total)}\n\n👤 *Cliente:* ${nome}\n📍 *Cidade:* ${cidade}\n🏠 *Endereço:* ${endereco}\n\n━━━━━━━━━━━━━━━━\n✨ Obrigado por escolher a Cheiro de Luxo!`;
+  registrarPedido(carrinho,total,cidade,cod);
   let t=5;const iv=setInterval(()=>{
     ce.innerText=`🚀 Enviando seu pedido (${t}s)`;t--;
     if(t<0){clearInterval(iv);carrinho=[];atualizarCarrinhoUI();renderCarrinho();["nomeCart","cidadeCart","enderecoCart"].forEach(k=>$(k).value="");ce.style.display="none";btn.style.display="flex";fecharCarrinho();location.href=`https://wa.me/${TELEFONE}?text=${encodeURIComponent(msg)}`}
@@ -501,14 +501,40 @@ $("selos").innerHTML=[["fa-lock","Site Seguro SSL"],["fa-shield-halved","Proteç
 document.querySelectorAll("[data-wa]").forEach(a=>a.href=`https://wa.me/${TELEFONE}`);
 $("tituloLoja").innerText=CONFIG.nomeLoja;
 atualizarCarrinhoUI();
+/* ===== NAVEGAÇÃO: rola até a seção descontando a altura REAL do cabeçalho fixo ===== */
+const hdrH=()=>{const h=document.getElementById("top");return h?h.offsetHeight:0};
+const ajustaPad=()=>{document.documentElement.style.scrollPaddingTop=(hdrH()+8)+"px"};
+let navTk=0;["touchstart","wheel"].forEach(t=>window.addEventListener(t,()=>navTk++,{passive:true}));
+function irPara(el){
+  const tk=++navTk;
+  while(el&&el.offsetHeight===0&&el.nextElementSibling)el=el.nextElementSibling;
+  if(!el)return;ajustaPad();
+  const y=()=>Math.max(0,Math.round(el.getBoundingClientRect().top+window.scrollY-hdrH()-8));
+  const rm=window.matchMedia&&matchMedia("(prefers-reduced-motion:reduce)").matches;
+  window.scrollTo({top:y(),behavior:rm?"instant":"smooth"});
+  let n=0;const chk=()=>{if(tk!==navTk)return;if(Math.abs(el.getBoundingClientRect().top-hdrH()-8)>6&&n++<3){window.scrollTo({top:y(),behavior:"instant"});setTimeout(chk,250)}};
+  setTimeout(chk,rm?50:800);
+}
+document.addEventListener("click",e=>{
+  const a=e.target.closest('a[href^="#"]');if(!a||a.hasAttribute("data-cat"))return;
+  const id=a.getAttribute("href").slice(1);if(/^produto-/.test(id))return;
+  if(!id||id==="top"){e.preventDefault();window.scrollTo({top:0,behavior:"smooth"});return}
+  const el=document.getElementById(id);if(!el)return;
+  e.preventDefault();irPara(el);try{history.replaceState(null,"","#"+id)}catch(x){}
+});
+window.addEventListener("load",ajustaPad);window.addEventListener("resize",ajustaPad);window.addEventListener("orientationchange",ajustaPad);ajustaPad();
+
 /* ===== LOGO + PIX (config/loja no Firestore, editado no painel) ===== */
-function registrarPedido(itens,total,cidade){
-  return new Promise(ok=>{try{db.collection("pedidos").add({data:Date.now(),total:Math.round(total*100)/100,cidade:String(cidade||"").slice(0,40),itens:itens.slice(0,50).map(i=>({nome:String(i.nome).slice(0,80),qtd:+i.qtd||1,preco:+i.preco||0}))}).then(ok,ok)}catch(e){ok()}})}
+const COD_AL="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+function novoCodigo(){const a=new Uint8Array(6);if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(a);else a.forEach((_,i)=>a[i]=Math.random()*256);return"CL-"+[...a].map(n=>COD_AL[n%COD_AL.length]).join("")}
+function registrarPedido(itens,total,cidade,codigo){
+  return new Promise(ok=>{try{db.collection("pedidos").doc(codigo).set({data:Date.now(),total:Math.round(total*100)/100,cidade:String(cidade||"").slice(0,40),itens:itens.slice(0,50).map(i=>({nome:String(i.nome).slice(0,80),qtd:+i.qtd||1,preco:+i.preco||0})),codigo,status:"pendente"}).then(ok,ok)}catch(e){ok()}})}
 async function carregarConfig(){
   try{const d=await db.collection("config").doc("loja").get();if(!d.exists)return;LOJA=d.data()||{};
     if(LOJA.logo){const a=document.querySelector("a.logo");a.innerHTML=`<img src="${LOJA.logo}" alt="${esc(CONFIG.nomeLoja)}" style="height:48px;width:auto;display:block">`;a.style.cssText="display:flex;align-items:center"}
     if(LOJA.whatsapp){const d=String(LOJA.whatsapp);TELEFONE=d;document.querySelectorAll("[data-wa]").forEach(a=>a.href=`https://wa.me/${d}`);document.querySelectorAll('a[href^="tel:"]').forEach(a=>{a.href="tel:+"+d;if(!a.querySelector("i")&&d.length>=12)a.textContent=`(${d.slice(2,4)}) ${d.slice(4,-4)}-${d.slice(-4)}`})}
     if(LOJA.instagram)document.querySelectorAll('a[href*="instagram.com"]').forEach(a=>{a.href="https://instagram.com/"+LOJA.instagram;if(!a.querySelector("i"))a.textContent="@"+LOJA.instagram});
+    ajustaPad();
     if(typeof renderCarrinho==="function")renderCarrinho();
   }catch(e){}
 }

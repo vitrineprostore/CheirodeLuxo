@@ -19,7 +19,8 @@
 body{font-family:Poppins,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--t);line-height:1.45;font-size:14px}
 button,input,select,textarea{font:inherit;color:inherit}button{cursor:pointer;border:0;background:none}
 :focus-visible{outline:3px solid rgba(123,47,190,.35);outline-offset:2px}
-h1,h2,h3,.num{font-family:"Playfair Display",serif}
+h1,h2,h3{font-family:"Playfair Display",serif}
+.num{font-family:Poppins,sans-serif;font-weight:700;font-variant-numeric:lining-nums}
 .i{width:20px;height:20px;flex:none}
 /* login */
 .login{max-width:400px;margin:9vh auto 0;display:none;gap:12px;background:#fff;border-radius:26px;box-shadow:var(--sh);padding:26px}
@@ -91,7 +92,7 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:rgba(45,27,94,.94);color:#fff;padding:12px 22px;border-radius:99px;z-index:200;opacity:0;pointer-events:none;transition:opacity .25s;font-weight:600;max-width:92vw;text-align:center}
 .toast.on{opacity:1}.toast.er{background:rgba(217,45,32,.96)}
 @media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.3)}.veil.open{display:block}.mn{margin-left:0}.hm{display:grid}.gr,.gr2{grid-template-columns:1fr}.main{padding:14px}.top{padding:10px 14px}}
-@media(max-width:600px){.g2,.g3{grid-template-columns:1fr}.pr{flex-wrap:wrap}.tools input{width:100%}.tools{width:100%}.k .num{font-size:1.6rem}}
+@media(max-width:600px){.top{gap:8px;padding:10px}.top h2{font-size:1.1rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.us{display:none}#per{max-width:112px;padding:9px 10px}.g2,.g3{grid-template-columns:1fr}.pr{flex-wrap:wrap}.tools input{width:100%}.tools{width:100%}.k .num{font-size:1.6rem}}
 </style>
 </head>
 <body>
@@ -109,6 +110,7 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
     <div class="lb" id="lbS">Cheiro de Luxo</div>
     <nav class="nav" id="nav">
       <button data-v="dash" data-ico="layout">Dashboard</button>
+      <button data-v="vendas" data-ico="bag">Vendas</button>
       <button data-v="produtos" data-ico="box">Produtos</button>
       <button data-v="categorias" data-ico="tag">Categorias</button>
       <button data-v="banners" data-ico="layers">Banners</button>
@@ -124,6 +126,14 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
       <span class="us" id="usr" title=""></span><button class="btn o s" onclick="auth.signOut()">Sair</button></header>
     <main class="main">
       <section id="v_dash"></section>
+
+      <section id="v_vendas" hidden>
+        <div class="card" style="margin-bottom:14px"><h3>Confirmar venda pelo código</h3>
+          <div class="hint" style="margin-bottom:10px">Digite o código que veio na mensagem do WhatsApp (ex.: CL-7K4M2P). A venda só entra no dashboard depois de confirmada.</div>
+          <div class="tools"><input id="vc" placeholder="CL-XXXXXX" autocapitalize="characters" autocomplete="off" style="max-width:220px;text-transform:uppercase"><button class="btn" onclick="buscarVenda()">Buscar</button></div><div id="vr" style="margin-top:12px"></div></div>
+        <div class="card" style="margin-bottom:14px"><h3>Aguardando confirmação</h3><div class="hint" id="vpS" style="margin-bottom:8px"></div><div class="tw"><table><thead><tr><th>Código</th><th>Data</th><th>Cidade</th><th>Itens</th><th>Total</th><th></th></tr></thead><tbody id="vp"></tbody></table></div></div>
+        <div class="card"><h3>Vendas confirmadas no período</h3><div class="tw"><table><thead><tr><th>Código</th><th>Confirmada em</th><th>Cidade</th><th>Itens</th><th>Valor</th><th></th></tr></thead><tbody id="vf"></tbody></table></div></div>
+      </section>
 
       <section id="v_produtos" hidden>
         <div class="row"><div class="tools"><input id="bp" placeholder="Buscar produto ou marca…" aria-label="Buscar"><select id="fcat" aria-label="Categoria"></select>
@@ -149,8 +159,8 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
       </section>
 
       <section id="v_relatorios" hidden>
-        <div class="card" style="margin-bottom:14px"><div class="row" style="margin-bottom:8px"><h3 style="margin:0">Pedidos iniciados no período</h3><button class="btn o s" onclick="csvPed()">Exportar CSV</button></div>
-          <div class="hint" id="rpS" style="margin-bottom:8px"></div><div class="tw"><table><thead><tr><th>Data</th><th>Cidade</th><th>Itens</th><th>Total</th></tr></thead><tbody id="rpT"></tbody></table></div></div>
+        <div class="card" style="margin-bottom:14px"><div class="row" style="margin-bottom:8px"><h3 style="margin:0">Pedidos do período</h3><button class="btn o s" onclick="csvPed()">Exportar CSV</button></div>
+          <div class="hint" id="rpS" style="margin-bottom:8px"></div><div class="tw"><table><thead><tr><th>Data</th><th>Código</th><th>Cidade</th><th>Itens</th><th>Total</th><th>Status</th></tr></thead><tbody id="rpT"></tbody></table></div></div>
         <div class="card"><div class="row" style="margin-bottom:8px"><h3 style="margin:0">Catálogo de produtos</h3><button class="btn o s" onclick="csvProd()">Exportar CSV</button></div>
           <div class="tw"><table><thead><tr><th>Produto</th><th>Categoria</th><th>Preço</th><th>Status</th><th>Imagem</th></tr></thead><tbody id="rpP"></tbody></table></div></div>
       </section>
@@ -215,7 +225,7 @@ const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLo
 const slug=s=>norm(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"");
 const catKey=s=>norm(s).replace(/[^a-z0-9 ]/g,"").replace(/\s+/g," ").trim();
 const catN=c=>({feminino:"Feminino",masculino:"Masculino",unissex:"Unissex",kits:"Kits e presentes"}[c]||(c?c[0].toUpperCase()+c.slice(1):"Sem categoria"));
-const R=n=>"R$ "+Number(n||0).toLocaleString("pt-BR",{minimumFractionDigits:2});
+const R=n=>"R$ "+Number(n||0).toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2});
 const num=v=>{const n=parseFloat(String(v).replace(/\./g,"").replace(",","."));return isNaN(n)?0:n};
 const ord=(a,b)=>(a.ordem||0)-(b.ordem||0);
 const dt=t=>new Date(t).toLocaleString("pt-BR",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"});
@@ -261,12 +271,12 @@ async function iniciar(){
   $("lbS").innerHTML=logoHtml(cfg.logo);rConfig();fillCats();go(view);
 }
 /* ===== NAVEGAÇÃO ===== */
-const TT={dash:"Dashboard",produtos:"Produtos",categorias:"Categorias",banners:"Banners",imagens:"Imagens",relatorios:"Relatórios",config:"Configurações"};
+const TT={dash:"Dashboard",vendas:"Vendas",produtos:"Produtos",categorias:"Categorias",banners:"Banners",imagens:"Imagens",relatorios:"Relatórios",config:"Configurações"};
 function menu(o){$("sb").classList.toggle("open",o);$("veil").classList.toggle("open",o)}
 function go(v){view=v;menu(false);document.querySelectorAll("main>section").forEach(s=>s.hidden=s.id!=="v_"+v);
   document.querySelectorAll("#nav button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));$("ttl").textContent=TT[v];
-  $("per").style.display=v==="dash"||v==="relatorios"?"":"none";
-  ({dash:rDash,produtos:rProds,categorias:rCats,banners:rBanners,imagens:rImgs,relatorios:rRel,config:rConfig})[v]();scrollTo(0,0)}
+  $("per").style.display=v==="dash"||v==="relatorios"||v==="vendas"?"":"none";
+  ({dash:rDash,vendas:rVendas,produtos:rProds,categorias:rCats,banners:rBanners,imagens:rImgs,relatorios:rRel,config:rConfig})[v]();scrollTo(0,0)}
 document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>go(b.dataset.v));
 $("per").onchange=()=>go(view);
 function fecharM(id){$(id).style.display="none"}
@@ -274,34 +284,38 @@ function fecharM(id){$(id).style.display="none"}
 /* ===== DASHBOARD ===== */
 const desde=()=>{const d=+$("per").value;return d?Date.now()-d*864e5:0};
 const pedPer=()=>{const s=desde();return pedidos.filter(p=>p.data>=s)};
+const stP=p=>p.status||"pendente",valP=p=>p.valorFinal!=null?+p.valorFinal:+p.total||0,tvP=p=>p.vendaEm||p.data;
+const vendasPer=()=>{const s=desde();return pedidos.filter(p=>stP(p)==="confirmada"&&tvP(p)>=s).sort((x,y)=>tvP(y)-tvP(x))};
+const itensTxt=p=>(p.itens||[]).map(i=>i.nome+" x"+i.qtd).join(", ");
 function mk(id,cfgc){if(CH[id])CH[id].destroy();const c=$(id);if(!c||typeof Chart==="undefined")return;CH[id]=new Chart(c,cfgc)}
 const PAL=["#5B2D8E","#C9A24B","#7B2FBE","#9a7728","#a78bd1","#2D1B5E","#E6CC8A"];
 function rDash(){
   const at=prods.filter(p=>p.ativo!==false),sem=prods.filter(p=>!p.imagem),pm=prods.filter(p=>p.badge==="Promoção"||p.precoAntigo>p.preco).length;
-  const pd=pedPer(),tot=pd.reduce((s,p)=>s+(p.total||0),0),tk=pd.length?tot/pd.length:0,med=prods.length?prods.reduce((s,p)=>s+(+p.preco||0),0)/prods.length:0;
-  const vz=pedErro?"Publique as regras atualizadas do Firestore para registrar e ler os pedidos.":"Sem pedidos no período. Eles aparecem aqui quando clientes finalizam pelo WhatsApp.";
+  const pd=vendasPer(),pend=pedidos.filter(p=>stP(p)==="pendente"),tot=pd.reduce((s,p)=>s+valP(p),0),tk=pd.length?tot/pd.length:0,med=prods.length?prods.reduce((s,p)=>s+(+p.preco||0),0)/prods.length:0;
+  const vz=pedErro?"Publique as regras atualizadas do Firestore para registrar e ler os pedidos.":"Sem vendas confirmadas no período. Confirme os pedidos na aba Vendas, informando o código recebido no WhatsApp.";
   $("v_dash").innerHTML=`<div class="kp">
    <div class="k k1"><span>Produtos ativos</span><b class="num">${at.length}</b><small>de ${prods.length} cadastrados</small></div>
-   <div class="k k2"><span>Pedidos iniciados</span><b class="num">${pd.length}</b><small>enviados ao WhatsApp no período</small></div>
-   <div class="k k3"><span>Valor em pedidos</span><b class="num">${R(tot)}</b><small>soma no período</small></div>
-   <div class="k k4"><span>Ticket médio</span><b class="num">${R(tk)}</b><small>por pedido iniciado</small></div></div>
+   <div class="k k2"><span>Vendas confirmadas</span><b class="num">${pd.length}</b><small>${pend.length} pedido(s) aguardando confirmação</small></div>
+   <div class="k k3"><span>Faturamento</span><b class="num">${R(tot)}</b><small>vendas confirmadas no período</small></div>
+   <div class="k k4"><span>Ticket médio</span><b class="num">${R(tk)}</b><small>por venda confirmada</small></div></div>
   <div class="st">
+   <div><span class="ic">${ico("bag")}</span><span><b>${pend.length}</b><small>Aguardando confirmação</small></span></div>
    <div><span class="ic">${ico("eye")}</span><span><b>${prods.length-at.length}</b><small>Ocultos</small></span></div>
    <div><span class="ic">${ico("alert")}</span><span><b>${sem.length}</b><small>Sem imagem</small></span></div>
    <div><span class="ic">${ico("star")}</span><span><b>${pm}</b><small>Em promoção</small></span></div>
    <div><span class="ic">${ico("dollar")}</span><span><b>${R(med)}</b><small>Preço médio</small></span></div>
    <div><span class="ic">${ico("layers")}</span><span><b>${banners.length}</b><small>Banners</small></span></div>
    <div><span class="ic">${ico("image")}</span><span><b>${imgs.length}</b><small>Imagens no banco</small></span></div></div>
-  <div class="gr"><div class="card"><h3>Pedidos por dia</h3><div class="ch">${pd.length?'<canvas id="c1"></canvas>':`<div class="vz">${vz}</div>`}</div></div>
+  <div class="gr"><div class="card"><h3>Vendas por dia</h3><div class="ch">${pd.length?'<canvas id="c1"></canvas>':`<div class="vz">${vz}</div>`}</div></div>
    <div class="card"><h3>Produtos por categoria</h3><div class="ch">${at.length?'<canvas id="c2"></canvas>':'<div class="vz">Nenhum produto ativo.</div>'}</div></div></div>
-  <div class="gr2"><div class="card"><h3>Itens mais pedidos</h3><div class="ch">${pd.length?'<canvas id="c3"></canvas>':`<div class="vz">${vz}</div>`}</div></div>
-   <div class="card"><h3>Últimos pedidos</h3><div class="tw"><table><tbody>${pd.slice(0,6).map(p=>`<tr><td>${dt(p.data)}</td><td>${esc(p.cidade||"-")}</td><td><b>${R(p.total)}</b></td></tr>`).join("")||`<tr><td class="hint">${vz}</td></tr>`}</tbody></table></div>
+  <div class="gr2"><div class="card"><h3>Itens mais vendidos</h3><div class="ch">${pd.length?'<canvas id="c3"></canvas>':`<div class="vz">${vz}</div>`}</div></div>
+   <div class="card"><h3>Últimas vendas</h3><div class="tw"><table><tbody>${pd.slice(0,6).map(p=>`<tr><td>${dt(tvP(p))}</td><td>${esc(p.cidade||"-")}</td><td><b>${R(valP(p))}</b></td></tr>`).join("")||`<tr><td class="hint">${vz}</td></tr>`}</tbody></table></div>
    ${sem.length?`<h3 style="margin-top:14px">Atenção: produtos sem imagem</h3>${sem.slice(0,5).map(p=>`<div class="row" style="margin:0 0 6px"><span>${esc(p.nome)}</span><button class="btn o s" onclick="editar(${prods.indexOf(p)})">Editar</button></div>`).join("")}`:""}</div></div>`;
   if(pd.length){
-    const s=desde()||Math.min(...pd.map(p=>p.data)),dias=Math.min(120,Math.max(1,Math.ceil((Date.now()-s)/864e5))),L=[],C=[],V=[],m={};
+    const s=desde()||Math.min(...pd.map(p=>tvP(p))),dias=Math.min(120,Math.max(1,Math.ceil((Date.now()-s)/864e5))),L=[],C=[],V=[],m={};
     for(let i=dias-1;i>=0;i--){const d=new Date(Date.now()-i*864e5),k=d.toDateString();m[k]=L.length;L.push(d.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit"}));C.push(0);V.push(0)}
-    pd.forEach(p=>{const i=m[new Date(p.data).toDateString()];if(i!=null){C[i]++;V[i]+=p.total||0}});
-    mk("c1",{type:"bar",data:{labels:L,datasets:[{label:"Pedidos",data:C,backgroundColor:"#7B2FBE",borderRadius:6,yAxisID:"y"},{type:"line",label:"Valor (R$)",data:V,borderColor:"#C9A24B",backgroundColor:"#C9A24B",tension:.35,yAxisID:"y1"}]},
+    pd.forEach(p=>{const i=m[new Date(tvP(p)).toDateString()];if(i!=null){C[i]++;V[i]+=valP(p)}});
+    mk("c1",{type:"bar",data:{labels:L,datasets:[{label:"Vendas",data:C,backgroundColor:"#7B2FBE",borderRadius:6,yAxisID:"y"},{type:"line",label:"Valor (R$)",data:V,borderColor:"#C9A24B",backgroundColor:"#C9A24B",tension:.35,yAxisID:"y1"}]},
      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},scales:{y:{beginAtZero:true,ticks:{precision:0}},y1:{position:"right",beginAtZero:true,grid:{display:false}}},plugins:{legend:{position:"bottom"}}}});
     const it={};pd.forEach(p=>(p.itens||[]).forEach(i=>it[i.nome]=(it[i.nome]||0)+(+i.qtd||1)));const top=Object.entries(it).sort((a,b)=>b[1]-a[1]).slice(0,6);
     mk("c3",{type:"bar",data:{labels:top.map(x=>x[0].slice(0,28)),datasets:[{label:"Quantidade",data:top.map(x=>x[1]),backgroundColor:"#5B2D8E",borderRadius:6}]},options:{indexAxis:"y",responsive:true,maintainAspectRatio:false,scales:{x:{beginAtZero:true,ticks:{precision:0}}},plugins:{legend:{display:false}}}});
@@ -309,6 +323,43 @@ function rDash(){
   if(at.length){const cs={};at.forEach(p=>cs[p.categoria]=(cs[p.categoria]||0)+1);const k=Object.keys(cs);
     mk("c2",{type:"doughnut",data:{labels:k.map(catN),datasets:[{data:k.map(x=>cs[x]),backgroundColor:PAL,borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:"62%",plugins:{legend:{position:"bottom"}}}})}
 }
+
+/* ===== VENDAS (confirmação por código) ===== */
+const normCod=v=>{let c=String(v||"").toUpperCase().replace(/[^A-Z0-9]/g,"");if(c.startsWith("CL"))c=c.slice(2);return c.length===6?"CL-"+c:""};
+function rVendas(){
+  const pe=pedidos.filter(p=>stP(p)==="pendente").sort((x,y)=>y.data-x.data),vf=vendasPer();
+  $("vpS").textContent=pedErro?"Publique as regras atualizadas do Firestore para registrar e ler os pedidos.":pe.length?"Clique em Conferir para confirmar a venda e ajustar o valor, se necessário.":"Nenhum pedido aguardando.";
+  $("vp").innerHTML=pe.slice(0,80).map(p=>`<tr><td><b>${esc(p.codigo||p.id)}</b></td><td>${dt(p.data)}</td><td>${esc(p.cidade||"-")}</td><td>${esc(itensTxt(p))}</td><td>${R(p.total)}</td><td><button class="btn o s" data-id="${esc(p.id)}" onclick="mostrarVenda(this.dataset.id)">Conferir</button></td></tr>`).join("")||`<tr><td colspan="6" class="hint">Nada pendente.</td></tr>`;
+  $("vf").innerHTML=vf.map(p=>`<tr><td><b>${esc(p.codigo||p.id)}</b></td><td>${dt(tvP(p))}</td><td>${esc(p.cidade||"-")}</td><td>${esc(itensTxt(p))}</td><td><b>${R(valP(p))}</b></td><td><button class="btn r s" data-id="${esc(p.id)}" onclick="desfazerVenda(this.dataset.id)">Desfazer</button></td></tr>`).join("")||`<tr><td colspan="6" class="hint">Nenhuma venda confirmada no período.</td></tr>`;
+}
+function mostrarVenda(id){
+  const p=pedidos.find(x=>x.id===id);if(!p)return;const ok=stP(p)==="confirmada";scrollTo(0,0);
+  $("vr").innerHTML=`<div style="background:var(--bg);border-radius:16px;padding:14px"><b>${esc(p.codigo||p.id)}</b> · ${dt(p.data)} · ${esc(p.cidade||"-")}<div class="hint" style="margin:4px 0">${esc(itensTxt(p))}</div><div>Total do pedido: <b>${R(p.total)}</b> ${ok?'<span class="tag">Já confirmada</span>':""}</div>`+
+   (ok?`<button class="btn r s" style="margin-top:10px" data-id="${esc(p.id)}" onclick="desfazerVenda(this.dataset.id)">Desfazer confirmação</button>`:`<div class="tools" style="margin-top:10px"><input id="vv" value="${String(p.total).replace(".",",")}" inputmode="decimal" style="width:140px" aria-label="Valor recebido"><button class="btn" data-id="${esc(p.id)}" onclick="confirmarVenda(this.dataset.id)">Confirmar venda</button></div><div class="hint" style="margin-top:6px">Altere o valor recebido se houve desconto ou frete.</div>`)+"</div>";
+}
+async function buscarVenda(){
+  const cod=normCod($("vc").value);if(!cod)return toast("Código inválido. Use o formato CL-XXXXXX",1);
+  let p=pedidos.find(x=>x.id===cod||x.codigo===cod);
+  if(!p){try{const d=await db.collection("pedidos").doc(cod).get();if(d.exists){p={id:d.id,...d.data()};pedidos.push(p)}}catch(e){return toast(msg(e),1)}}
+  if(p)return mostrarVenda(p.id);
+  $("vr").innerHTML=`<div class="hint">Código ${cod} não encontrado. Se o pedido não foi gravado (por exemplo, regras do Firestore ainda não publicadas), registre a venda manualmente:</div><div class="tools" style="margin-top:8px"><input id="mv" placeholder="Valor R$" inputmode="decimal" style="width:130px"><input id="mci" placeholder="Cidade (opcional)" style="width:170px"><input id="mit" placeholder="Itens (opcional)" style="width:220px"><button class="btn" onclick="vendaManual('${cod}')">Registrar venda</button></div>`;
+}
+async function confirmarVenda(id){
+  const p=pedidos.find(x=>x.id===id),v=num($("vv").value);if(!p||!(v>0))return toast("Informe o valor recebido",1);
+  const d={status:"confirmada",vendaEm:Date.now(),valorFinal:v};
+  try{await db.collection("pedidos").doc(id).update(d);Object.assign(p,d);$("vc").value="";$("vr").innerHTML="";rVendas();toast("Venda confirmada. Já está no dashboard.")}catch(e){toast(msg(e),1)}
+}
+async function desfazerVenda(id){
+  const p=pedidos.find(x=>x.id===id);if(!p||!confirm("Desfazer a confirmação da venda "+(p.codigo||p.id)+"? Ela volta para 'aguardando'."))return;
+  const d={status:"pendente",vendaEm:null,valorFinal:null};
+  try{await db.collection("pedidos").doc(id).update(d);Object.assign(p,d);$("vr").innerHTML="";rVendas();toast("Confirmação desfeita")}catch(e){toast(msg(e),1)}
+}
+async function vendaManual(cod){
+  const v=num($("mv").value);if(!(v>0))return toast("Informe o valor da venda",1);
+  const it=$("mit").value.trim()||"Venda registrada manualmente",d={data:Date.now(),total:v,cidade:$("mci").value.trim(),itens:[{nome:it,qtd:1,preco:v}],codigo:cod,status:"confirmada",vendaEm:Date.now(),valorFinal:v,manual:true};
+  try{await db.collection("pedidos").doc(cod).set(d);pedidos.unshift({id:cod,...d});$("vc").value="";$("vr").innerHTML="";rVendas();toast("Venda registrada. Já está no dashboard.")}catch(e){toast(msg(e),1)}
+}
+$("vc").addEventListener("keydown",e=>{if(e.key==="Enter")buscarVenda()});
 
 /* ===== CATEGORIAS ===== */
 const allCats=()=>[...new Set([...(cfg.categorias||DEFCATS),...prods.map(p=>p.categoria).filter(Boolean)])];
@@ -422,15 +473,15 @@ async function salvarBanners(){$("bb").disabled=true;
 
 /* ===== RELATÓRIOS ===== */
 function rRel(){
-  const pd=pedPer(),tot=pd.reduce((s,p)=>s+(p.total||0),0);
-  $("rpS").textContent=pedErro?"Publique as regras atualizadas do Firestore para registrar e ler pedidos.":`${pd.length} pedidos iniciados · ${R(tot)} no período. São pedidos enviados ao WhatsApp, não vendas confirmadas.`;
-  $("rpT").innerHTML=pd.map(p=>`<tr><td>${dt(p.data)}</td><td>${esc(p.cidade||"-")}</td><td>${esc((p.itens||[]).map(i=>i.nome+" x"+i.qtd).join(", "))}</td><td><b>${R(p.total)}</b></td></tr>`).join("")||`<tr><td colspan="4" class="hint">Nenhum pedido no período.</td></tr>`;
+  const pd=pedPer(),vf=vendasPer(),tot=vf.reduce((s,p)=>s+valP(p),0);
+  $("rpS").textContent=pedErro?"Publique as regras atualizadas do Firestore para registrar e ler pedidos.":`${pd.length} pedidos no período · ${vf.length} vendas confirmadas · ${R(tot)} em vendas confirmadas.`;
+  $("rpT").innerHTML=pd.map(p=>`<tr><td>${dt(p.data)}</td><td><b>${esc(p.codigo||p.id)}</b></td><td>${esc(p.cidade||"-")}</td><td>${esc(itensTxt(p))}</td><td><b>${R(valP(p))}</b></td><td><span class="tag ${stP(p)==="confirmada"?"":"g"}">${stP(p)==="confirmada"?"Confirmada":"Aguardando"}</span></td></tr>`).join("")||`<tr><td colspan="6" class="hint">Nenhum pedido no período.</td></tr>`;
   $("rpP").innerHTML=prods.map(p=>`<tr><td><b>${esc(p.nome)}</b><br><small class="hint">${esc(p.marca||"")}</small></td><td>${esc(catN(p.categoria))}</td><td>${R(p.preco)}</td><td><span class="tag ${p.ativo===false?"e":""}">${p.ativo===false?"Oculto":"Ativo"}</span></td><td>${p.imagem?"Sim":"Não"}</td></tr>`).join("");
 }
 function baixar(nome,linhas){const t="\ufeff"+linhas.map(r=>r.map(c=>`"${String(c??"").replace(/"/g,'""')}"`).join(";")).join("\r\n"),a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([t],{type:"text/csv;charset=utf-8"}));a.download=nome;document.body.appendChild(a);a.click();a.remove()}
 function csvProd(){baixar("produtos-cheiro-de-luxo.csv",[["Produto","Marca","Categoria","Preço","Preço antigo","Volume","Selo","Status","Imagem"],...prods.map(p=>[p.nome,p.marca,catN(p.categoria),String(p.preco).replace(".",","),p.precoAntigo?String(p.precoAntigo).replace(".",","):"",p.ml,p.badge,p.ativo===false?"Oculto":"Ativo",p.imagem?"Sim":"Não"])])}
-function csvPed(){baixar("pedidos-cheiro-de-luxo.csv",[["Data","Cidade","Itens","Total"],...pedPer().map(p=>[dt(p.data),p.cidade||"",(p.itens||[]).map(i=>i.nome+" x"+i.qtd).join(" | "),String(p.total).replace(".",",")])])}
+function csvPed(){baixar("pedidos-cheiro-de-luxo.csv",[["Código","Data do pedido","Cidade","Itens","Total do pedido","Status","Data da venda","Valor da venda"],...pedPer().map(p=>[p.codigo||p.id,dt(p.data),p.cidade||"",(p.itens||[]).map(i=>i.nome+" x"+i.qtd).join(" | "),String(p.total).replace(".",","),stP(p)==="confirmada"?"Confirmada":"Aguardando",stP(p)==="confirmada"?dt(tvP(p)):"",stP(p)==="confirmada"?String(valP(p)).replace(".",","):""])])}
 
 /* ===== CONFIGURAÇÕES ===== */
 function logoComprimir(src,max){return new Promise((ok,no)=>{const im=new Image();
