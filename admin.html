@@ -417,15 +417,15 @@ async function desfazerPrecos(){
 /* ===== DUPLICADOS ===== */
 const keyN=s=>norm(s).replace(/[^a-z0-9]/g,"");
 function nomeSim(x,y){const a=keyN(x),b=keyN(y);if(!a||!b)return false;if(a===b)return true;const[s,l]=a.length<b.length?[a,b]:[b,a];return s.length>=10&&l.includes(s)&&s.length/l.length>=.7}
-function motivos(a,b){const m=[];if(nomeSim(a.nome,b.nome))m.push("nome parecido");if(a.imagem&&b.imagem&&((a.imagemId&&a.imagemId===b.imagemId)||a.imagem===b.imagem||mesma(a._t,b._t)))m.push("mesma imagem");return m}
-function verDups(){analisar().then(()=>{
+function motivos(a,b){const m=[];if(nomeSim(a.nome,b.nome))m.push("nome parecido");if(a.imagem&&b.imagem&&((a.imagemId&&a.imagemId===b.imagemId)||a.imagem===b.imagem))m.push("mesma imagem");return m}
+function verDups(){{
   const n=prods.length,pa=prods.map((_,i)=>i),f=i=>pa[i]===i?i:(pa[i]=f(pa[i]));
   for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(motivos(prods[i],prods[j]).length)pa[f(j)]=f(i);
   const g={};prods.forEach((p,i)=>(g[f(i)]=g[f(i)]||[]).push(i));const G=Object.values(g).filter(l=>l.length>1);
   $("dpS").textContent=G.length?`${G.length} grupo(s) com possíveis duplicados entre ${n} produtos. Confira e edite, oculte ou exclua o que sobrar.`:`Nenhum possível duplicado entre ${n} produtos.`;
   $("dpL").innerHTML=G.map(l=>{const mo=new Set();l.forEach(i=>l.forEach(j=>{if(i<j)motivos(prods[i],prods[j]).forEach(x=>mo.add(x))}));
     return`<div style="background:var(--bg);border-radius:16px;padding:12px;margin-bottom:10px"><div class="hint" style="margin-bottom:6px">Motivo: ${[...mo].join(" e ")}</div>${l.map(i=>`<div class="row" style="margin:0 0 6px"><span><b>${esc(prods[i].nome)}</b><br><small class="hint">${R(prods[i].preco)} · ${prods[i].ativo===false?"Oculto":"Ativo"}</small></span><button class="btn o s" onclick="fecharM('mDup');editar(${i})">Editar</button></div>`).join("")}</div>`}).join("");
-  $("mDup").style.display="flex"})}
+  $("mDup").style.display="flex"}}
 
 /* ===== PRODUTOS ===== */
 function rProds(){
@@ -455,7 +455,7 @@ async function salvarProd(){
   const p={id,ordem:ant?.ordem??-Date.now(),nome,marca:$("fm").value.trim(),categoria:$("fc").value,preco,precoAntigo:num($("fa").value)||0,ml:$("fv").value.trim(),badge:$("fb").value,ativo:$("fat").value==="1",imagem:imgSel,imagemId:imgId,notas:{topo:$("nt").value.trim(),coracao:$("nc").value.trim(),fundo:$("nf").value.trim()},descricao:$("fd").value.trim(),variacoes};
   if(!ant||keyN(ant.nome)!==keyN(nome)){const nm=prods.filter(q=>q!==ant&&nomeSim(q.nome,nome));if(nm.length&&!confirm("Atenção: já existe produto com nome parecido: "+nm.slice(0,3).map(q=>q.nome).join(", ")+".\n\nSalvar mesmo assim?"))return}
   $("bs").disabled=true;$("bs").textContent="Salvando…";
-  try{const dc=ant?._doc||id;await db.collection("produtos").doc(dc).set(p,{merge:true});const n={...(ant||{}),...p,_doc:dc};if(!ant||ant.imagem!==p.imagem)n._t=undefined;edit>=0?prods[edit]=n:prods.unshift(n);prods.sort(ord);
+  try{const dc=ant?._doc||id;await db.collection("produtos").doc(dc).set(p,{merge:true});const n={...(ant||{}),...p,_doc:dc};edit>=0?prods[edit]=n:prods.unshift(n);prods.sort(ord);
     fecharM("mP");go(view==="dash"?"dash":"produtos");toast("Produto salvo. Já está na vitrine.")}catch(e){toast(msg(e),1)}
   $("bs").disabled=false;$("bs").textContent="Salvar";
 }
@@ -478,21 +478,13 @@ $("up").onchange=async e=>{const fs=[...e.target.files];let n=0;
   e.target.value="";toast("Envio concluído")};
 /* ===== USO DAS IMAGENS: quais já viraram produto e quais não ===== */
 let fImg="todas",fPick="todas",pickProd=true;
-function thumb(src){return new Promise(ok=>{if(!src)return ok(null);const im=new Image(),to=setTimeout(()=>ok(null),4000);
-  im.onload=()=>{clearTimeout(to);try{const c=document.createElement("canvas");c.width=c.height=24;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,24,24);x.drawImage(im,0,0,24,24);
-    const d=x.getImageData(0,0,24,24).data,o=new Uint8Array(1728);for(let i=0,j=0;i<d.length;i+=4){o[j++]=d[i];o[j++]=d[i+1];o[j++]=d[i+2]}ok(o)}catch(e){ok(null)}};
-  im.onerror=()=>{clearTimeout(to);ok(null)};im.src=src})}
-const mesma=(x,y)=>{if(!x||!y)return false;let s=0;for(let i=0;i<x.length;i++)s+=Math.abs(x[i]-y[i]);return s/x.length<=4};
-const faltaAnalise=()=>[...prods,...imgs].some(o=>o._t===undefined);
-async function analisar(){for(const o of [...prods,...imgs])if(o._t===undefined)o._t=await thumb(o.imagem||o.data||"")}
-const usoDe=x=>prods.filter(p=>p.imagem&&((x.id&&p.imagemId===x.id)||mesma(p._t,x._t)));
-const repDe=x=>imgs.filter(y=>y!==x&&mesma(x._t,y._t));
+/* Comparação EXATA (sem "parecido"): vínculo pelo ID do banco ou pelos mesmos dados da imagem */
+const usoDe=x=>prods.filter(p=>p.imagem&&((x.id&&p.imagemId===x.id)||p.imagem===x.data));
+const repDe=x=>imgs.filter(y=>y!==x&&y.data===x.data);
 const badges=x=>{const u=usoDe(x),r=repDe(x);return`<div class="b">${u.length?`<span class="tag ok" title="${esc(u.map(p=>p.nome).join(", "))}">Em uso · ${esc(u[0].nome.slice(0,22))}${u.length>1?" +"+(u.length-1):""}</span>`:'<span class="tag g">Não usada</span>'}${r.length?'<span class="tag e">Repetida no banco</span>':""}</div>`};
 const filtraUso=(L,f)=>f==="nao"?L.filter(x=>!usoDe(x).length):f==="sim"?L.filter(x=>usoDe(x).length):L;
 function barra(el,f,fn,L){const u=L.filter(x=>usoDe(x).length).length;$(el).innerHTML=[["todas","Todas ("+L.length+")"],["nao","Não usadas ("+(L.length-u)+")"],["sim","Já usadas ("+u+")"]].map(([k,t])=>`<button class="btn s${f===k?"":" o"}" onclick="${fn}('${k}')">${t}</button>`).join("")}
-function rImgs(){$("bc").textContent=imgs.length+(imgs.length===1?" imagem":" imagens");
-  if(faltaAnalise()){$("imF").innerHTML="";$("ig").innerHTML='<p class="hint">Analisando quais imagens já foram usadas…</p>';analisar().then(()=>{if(view==="imagens")pintarImgs()});return}
-  pintarImgs()}
+function rImgs(){$("bc").textContent=imgs.length+(imgs.length===1?" imagem":" imagens");pintarImgs()}
 function setFImg(f){fImg=f;pintarImgs()}
 function pintarImgs(){barra("imF",fImg,"setFImg",imgs);const L=imgs.map((x,i)=>[x,i]).filter(([x])=>filtraUso([x],fImg).length);
   $("ig").innerHTML=L.map(([x,i])=>`<div class="im"><img src="${x.data}" alt="" loading="lazy"><span>${esc(x.nome)} · ${Math.round((x.data||"").length*.75/1024)} KB</span>${badges(x)}<button class="d" onclick="delImg(${i})">Excluir</button></div>`).join("")||`<p class="hint">${imgs.length?"Nenhuma imagem neste filtro.":"Nenhuma imagem ainda."}</p>`}
@@ -501,8 +493,7 @@ async function delImg(i){const x=imgs[i],uso=usoDe(x).map(p=>p.nome);
   try{await db.collection("imagens").doc(x.id).delete();imgs.splice(i,1);rImgs();toast("Imagem excluída")}catch(e){toast(msg(e),1)}}
 let pickMode="b",pickList=[];
 function abrirPick(cb){pickCb=cb||(async x=>{try{x.cat?selImg(x.data,x.id):selImg(await comprimir(x.data,640,.78),x.id)}catch(e){toast(msg(e),1)}});
-  pickProd=!cb;fPick=pickProd&&edit<0?"nao":"todas";$("pkTabs").style.display=cb?"none":"flex";pickMode="b";$("mI").style.display="flex";
-  if(pickProd&&faltaAnalise()){$("pkF").innerHTML="";$("pk").innerHTML='<p class="hint">Analisando quais imagens já foram usadas…</p>';analisar().then(rPick)}else rPick()}
+  pickProd=!cb;fPick=pickProd&&edit<0?"nao":"todas";$("pkTabs").style.display=cb?"none":"flex";pickMode="b";$("mI").style.display="flex";rPick()}
 function usadasCat(){const m=new Map();prods.forEach(p=>{if(!p.imagem)return;if(!m.has(p.imagem))m.set(p.imagem,{data:p.imagem,id:p.imagemId||"",nomes:[],cat:true});m.get(p.imagem).nomes.push(p.nome)});return[...m.values()]}
 function pickTab(t){pickMode=t;rPick()}
 function setFPick(f){fPick=f;rPick()}
