@@ -93,6 +93,7 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
 .toast.on{opacity:1}.toast.er{background:rgba(217,45,32,.96)}
 @media(max-width:900px){.sb{transform:translateX(-100%)}.sb.open{transform:none;box-shadow:0 0 40px rgba(0,0,0,.3)}.veil.open{display:block}.mn{margin-left:0}.hm{display:grid}.gr,.gr2{grid-template-columns:1fr}.main{padding:14px}.top{padding:10px 14px}}
 @media(max-width:600px){.top{gap:8px;padding:10px}.top h2{font-size:1.1rem;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.us{display:none}#per{max-width:112px;padding:9px 10px}.g2,.g3{grid-template-columns:1fr}.pr{flex-wrap:wrap}.tools input{width:100%}.tools{width:100%}.k .num{font-size:1.6rem}}
+.tag.ok{background:#e3f6ea;color:#15803d}.im .b{padding:0 6px 8px;display:flex;flex-wrap:wrap;gap:4px;justify-content:center}
 </style>
 </head>
 <body>
@@ -138,7 +139,7 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
       <section id="v_produtos" hidden>
         <div class="row"><div class="tools"><input id="bp" placeholder="Buscar produto ou marca…" aria-label="Buscar"><select id="fcat" aria-label="Categoria"></select>
           <select id="fst" aria-label="Status"><option value="">Todos</option><option value="a">Ativos</option><option value="o">Ocultos</option><option value="s">Sem imagem</option></select></div>
-          <button class="btn" onclick="editar(-1)">Novo produto</button></div>
+          <span class="tools"><button class="btn o" onclick="verDups()">Verificar duplicados</button><button class="btn" onclick="editar(-1)">Novo produto</button></span></div>
         <div class="hint" id="pc" style="margin-bottom:10px"></div><div class="lp" id="lp"></div>
       </section>
 
@@ -155,7 +156,7 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
       <section id="v_imagens" hidden>
         <div class="row"><b>Banco de imagens</b><span class="hint" id="bc"></span></div>
         <label class="drop" for="up">Toque para enviar fotos (JPG, PNG ou WebP). Elas são comprimidas automaticamente.</label>
-        <input id="up" type="file" accept="image/*" multiple hidden><div class="ig" id="ig" style="margin-top:16px"></div>
+        <input id="up" type="file" accept="image/*" multiple hidden><div class="tools" id="imF" style="margin-top:14px"></div><div class="ig" id="ig" style="margin-top:14px"></div>
       </section>
 
       <section id="v_relatorios" hidden>
@@ -220,7 +221,8 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
   <label style="display:flex;gap:8px;align-items:center;font-weight:500;color:var(--t)"><input type="checkbox" id="prA"> Guardar o preço atual como "preço antigo" (aparece riscado na loja)</label>
   <div class="card" style="margin:12px 0;padding:12px;background:var(--bg);box-shadow:none"><b>Prévia</b><div id="prP" class="tw" style="margin-top:6px"></div></div>
   <div class="row" style="margin:0"><span class="hint" id="prN"></span><span class="tools"><button class="btn o" onclick="fecharM('mPr')">Cancelar</button><button class="btn" id="prB" onclick="aplicarPrecos()">Aplicar</button></span></div></div></div>
-<div id="mI" class="ov"><div class="mb"><h3>Escolher imagem</h3><div class="tools" id="pkTabs" style="margin-bottom:12px"><button class="btn s" id="pkB" onclick="pickTab('b')">Banco de imagens</button><button class="btn o s" id="pkC" onclick="pickTab('c')">Já usadas no catálogo</button></div><div class="ig pick" id="pk"></div>
+<div id="mDup" class="ov"><div class="mb"><h3>Possíveis produtos duplicados</h3><div class="hint" id="dpS" style="margin-bottom:10px"></div><div id="dpL"></div><div class="row" style="margin:14px 0 0"><span></span><button class="btn o" onclick="fecharM('mDup')">Fechar</button></div></div></div>
+<div id="mI" class="ov"><div class="mb"><h3>Escolher imagem</h3><div class="tools" id="pkTabs" style="margin-bottom:12px"><button class="btn s" id="pkB" onclick="pickTab('b')">Banco de imagens</button><button class="btn o s" id="pkC" onclick="pickTab('c')">Já usadas no catálogo</button></div><div class="tools" id="pkF" style="margin-bottom:12px"></div><div class="ig pick" id="pk"></div>
   <div class="row" style="margin:14px 0 0"><span class="hint">Não achou? Envie na aba Imagens.</span><button class="btn o" onclick="fecharM('mI')">Fechar</button></div></div></div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -412,6 +414,19 @@ async function desfazerPrecos(){
     lastPr.forEach(s=>{s.p.preco=s.preco;s.p.precoAntigo=s.antigo;s.p.variacoes=s.vs});lastPr=null;$("prU").hidden=true;rCats();toast("Preços restaurados")}catch(e){toast(msg(e),1)}
 }
 
+/* ===== DUPLICADOS ===== */
+const keyN=s=>norm(s).replace(/[^a-z0-9]/g,"");
+function nomeSim(x,y){const a=keyN(x),b=keyN(y);if(!a||!b)return false;if(a===b)return true;const[s,l]=a.length<b.length?[a,b]:[b,a];return s.length>=10&&l.includes(s)&&s.length/l.length>=.7}
+function motivos(a,b){const m=[];if(nomeSim(a.nome,b.nome))m.push("nome parecido");if(a.imagem&&b.imagem&&((a.imagemId&&a.imagemId===b.imagemId)||a.imagem===b.imagem||mesma(a._t,b._t)))m.push("mesma imagem");return m}
+function verDups(){analisar().then(()=>{
+  const n=prods.length,pa=prods.map((_,i)=>i),f=i=>pa[i]===i?i:(pa[i]=f(pa[i]));
+  for(let i=0;i<n;i++)for(let j=i+1;j<n;j++)if(motivos(prods[i],prods[j]).length)pa[f(j)]=f(i);
+  const g={};prods.forEach((p,i)=>(g[f(i)]=g[f(i)]||[]).push(i));const G=Object.values(g).filter(l=>l.length>1);
+  $("dpS").textContent=G.length?`${G.length} grupo(s) com possíveis duplicados entre ${n} produtos. Confira e edite, oculte ou exclua o que sobrar.`:`Nenhum possível duplicado entre ${n} produtos.`;
+  $("dpL").innerHTML=G.map(l=>{const mo=new Set();l.forEach(i=>l.forEach(j=>{if(i<j)motivos(prods[i],prods[j]).forEach(x=>mo.add(x))}));
+    return`<div style="background:var(--bg);border-radius:16px;padding:12px;margin-bottom:10px"><div class="hint" style="margin-bottom:6px">Motivo: ${[...mo].join(" e ")}</div>${l.map(i=>`<div class="row" style="margin:0 0 6px"><span><b>${esc(prods[i].nome)}</b><br><small class="hint">${R(prods[i].preco)} · ${prods[i].ativo===false?"Oculto":"Ativo"}</small></span><button class="btn o s" onclick="fecharM('mDup');editar(${i})">Editar</button></div>`).join("")}</div>`}).join("");
+  $("mDup").style.display="flex"})}
+
 /* ===== PRODUTOS ===== */
 function rProds(){
   const q=norm($("bp").value),c=$("fcat").value,s=$("fst").value;
@@ -438,8 +453,9 @@ async function salvarProd(){
   const variacoes=$("fx").value.split("\n").map(l=>l.split("=")).filter(a=>a[0].trim()&&a[1]).map(a=>({nome:a[0].trim(),preco:num(a[1])}));
   const ant=edit>=0?prods[edit]:null;let id=ant?.id||slug(nome)||"p";if(!ant&&prods.some(p=>p._doc===id))id+="-"+Date.now().toString(36);
   const p={id,ordem:ant?.ordem??-Date.now(),nome,marca:$("fm").value.trim(),categoria:$("fc").value,preco,precoAntigo:num($("fa").value)||0,ml:$("fv").value.trim(),badge:$("fb").value,ativo:$("fat").value==="1",imagem:imgSel,imagemId:imgId,notas:{topo:$("nt").value.trim(),coracao:$("nc").value.trim(),fundo:$("nf").value.trim()},descricao:$("fd").value.trim(),variacoes};
+  if(!ant||keyN(ant.nome)!==keyN(nome)){const nm=prods.filter(q=>q!==ant&&nomeSim(q.nome,nome));if(nm.length&&!confirm("Atenção: já existe produto com nome parecido: "+nm.slice(0,3).map(q=>q.nome).join(", ")+".\n\nSalvar mesmo assim?"))return}
   $("bs").disabled=true;$("bs").textContent="Salvando…";
-  try{const dc=ant?._doc||id;await db.collection("produtos").doc(dc).set(p,{merge:true});const n={...(ant||{}),...p,_doc:dc};edit>=0?prods[edit]=n:prods.unshift(n);prods.sort(ord);
+  try{const dc=ant?._doc||id;await db.collection("produtos").doc(dc).set(p,{merge:true});const n={...(ant||{}),...p,_doc:dc};if(!ant||ant.imagem!==p.imagem)n._t=undefined;edit>=0?prods[edit]=n:prods.unshift(n);prods.sort(ord);
     fecharM("mP");go(view==="dash"?"dash":"produtos");toast("Produto salvo. Já está na vitrine.")}catch(e){toast(msg(e),1)}
   $("bs").disabled=false;$("bs").textContent="Salvar";
 }
@@ -460,19 +476,43 @@ $("up").onchange=async e=>{const fs=[...e.target.files];let n=0;
   for(const f of fs){try{toast(`Enviando ${++n} de ${fs.length}…`);const data=await comprimir(await lerArq(f),1200,.8),doc={nome:f.name.replace(/\.[^.]+$/,"").slice(0,60),data,criado:Date.now()};
     const r=await db.collection("imagens").add(doc);imgs.unshift({id:r.id,...doc});rImgs()}catch(er){toast(msg(er),1)}}
   e.target.value="";toast("Envio concluído")};
+/* ===== USO DAS IMAGENS: quais já viraram produto e quais não ===== */
+let fImg="todas",fPick="todas",pickProd=true;
+function thumb(src){return new Promise(ok=>{if(!src)return ok(null);const im=new Image(),to=setTimeout(()=>ok(null),4000);
+  im.onload=()=>{clearTimeout(to);try{const c=document.createElement("canvas");c.width=c.height=24;const x=c.getContext("2d");x.fillStyle="#fff";x.fillRect(0,0,24,24);x.drawImage(im,0,0,24,24);
+    const d=x.getImageData(0,0,24,24).data,o=new Uint8Array(1728);for(let i=0,j=0;i<d.length;i+=4){o[j++]=d[i];o[j++]=d[i+1];o[j++]=d[i+2]}ok(o)}catch(e){ok(null)}};
+  im.onerror=()=>{clearTimeout(to);ok(null)};im.src=src})}
+const mesma=(x,y)=>{if(!x||!y)return false;let s=0;for(let i=0;i<x.length;i++)s+=Math.abs(x[i]-y[i]);return s/x.length<=4};
+const faltaAnalise=()=>[...prods,...imgs].some(o=>o._t===undefined);
+async function analisar(){for(const o of [...prods,...imgs])if(o._t===undefined)o._t=await thumb(o.imagem||o.data||"")}
+const usoDe=x=>prods.filter(p=>p.imagem&&((x.id&&p.imagemId===x.id)||mesma(p._t,x._t)));
+const repDe=x=>imgs.filter(y=>y!==x&&mesma(x._t,y._t));
+const badges=x=>{const u=usoDe(x),r=repDe(x);return`<div class="b">${u.length?`<span class="tag ok" title="${esc(u.map(p=>p.nome).join(", "))}">Em uso · ${esc(u[0].nome.slice(0,22))}${u.length>1?" +"+(u.length-1):""}</span>`:'<span class="tag g">Não usada</span>'}${r.length?'<span class="tag e">Repetida no banco</span>':""}</div>`};
+const filtraUso=(L,f)=>f==="nao"?L.filter(x=>!usoDe(x).length):f==="sim"?L.filter(x=>usoDe(x).length):L;
+function barra(el,f,fn,L){const u=L.filter(x=>usoDe(x).length).length;$(el).innerHTML=[["todas","Todas ("+L.length+")"],["nao","Não usadas ("+(L.length-u)+")"],["sim","Já usadas ("+u+")"]].map(([k,t])=>`<button class="btn s${f===k?"":" o"}" onclick="${fn}('${k}')">${t}</button>`).join("")}
 function rImgs(){$("bc").textContent=imgs.length+(imgs.length===1?" imagem":" imagens");
-  $("ig").innerHTML=imgs.map((x,i)=>`<div class="im"><img src="${x.data}" alt="" loading="lazy"><span>${esc(x.nome)} · ${Math.round((x.data||"").length*.75/1024)} KB</span><button class="d" onclick="delImg(${i})">Excluir</button></div>`).join("")||`<p class="hint">Nenhuma imagem ainda.</p>`}
-async function delImg(i){const x=imgs[i],uso=prods.filter(p=>p.imagemId===x.id).map(p=>p.nome);
+  if(faltaAnalise()){$("imF").innerHTML="";$("ig").innerHTML='<p class="hint">Analisando quais imagens já foram usadas…</p>';analisar().then(()=>{if(view==="imagens")pintarImgs()});return}
+  pintarImgs()}
+function setFImg(f){fImg=f;pintarImgs()}
+function pintarImgs(){barra("imF",fImg,"setFImg",imgs);const L=imgs.map((x,i)=>[x,i]).filter(([x])=>filtraUso([x],fImg).length);
+  $("ig").innerHTML=L.map(([x,i])=>`<div class="im"><img src="${x.data}" alt="" loading="lazy"><span>${esc(x.nome)} · ${Math.round((x.data||"").length*.75/1024)} KB</span>${badges(x)}<button class="d" onclick="delImg(${i})">Excluir</button></div>`).join("")||`<p class="hint">${imgs.length?"Nenhuma imagem neste filtro.":"Nenhuma imagem ainda."}</p>`}
+async function delImg(i){const x=imgs[i],uso=usoDe(x).map(p=>p.nome);
   if(!confirm(uso.length?`Esta imagem foi usada em: ${uso.join(", ")}. Eles continuam com a cópia da foto. Excluir do banco?`:"Excluir esta imagem do banco?"))return;
   try{await db.collection("imagens").doc(x.id).delete();imgs.splice(i,1);rImgs();toast("Imagem excluída")}catch(e){toast(msg(e),1)}}
 let pickMode="b",pickList=[];
 function abrirPick(cb){pickCb=cb||(async x=>{try{x.cat?selImg(x.data,x.id):selImg(await comprimir(x.data,640,.78),x.id)}catch(e){toast(msg(e),1)}});
-  $("pkTabs").style.display=cb?"none":"flex";pickMode="b";rPick();$("mI").style.display="flex"}
+  pickProd=!cb;fPick=pickProd&&edit<0?"nao":"todas";$("pkTabs").style.display=cb?"none":"flex";pickMode="b";$("mI").style.display="flex";
+  if(pickProd&&faltaAnalise()){$("pkF").innerHTML="";$("pk").innerHTML='<p class="hint">Analisando quais imagens já foram usadas…</p>';analisar().then(rPick)}else rPick()}
 function usadasCat(){const m=new Map();prods.forEach(p=>{if(!p.imagem)return;if(!m.has(p.imagem))m.set(p.imagem,{data:p.imagem,id:p.imagemId||"",nomes:[],cat:true});m.get(p.imagem).nomes.push(p.nome)});return[...m.values()]}
 function pickTab(t){pickMode=t;rPick()}
-function rPick(){const L=pickList=pickMode==="c"?usadasCat():imgs;$("pkB").className="btn s"+(pickMode==="b"?"":" o");$("pkC").className="btn s"+(pickMode==="c"?"":" o");
-  $("pk").innerHTML=L.length?L.map((x,i)=>`<div class="im" onclick="escolher(${i})"><img src="${x.data}" alt="" loading="lazy"><span>${esc(x.cat?x.nomes[0]+(x.nomes.length>1?" +"+(x.nomes.length-1):""):x.nome)}</span></div>`).join(""):`<p class="hint">${pickMode==="c"?"Nenhum produto com imagem ainda.":"O banco está vazio. Envie fotos na aba Imagens."}</p>`}
-function escolher(i){const f=pickCb,x=pickList[i];fecharM("mI");f(x)}
+function setFPick(f){fPick=f;rPick()}
+function rPick(){const bank=pickMode==="b",bd=bank&&pickProd;$("pkB").className="btn s"+(bank?"":" o");$("pkC").className="btn s"+(bank?" o":"");
+  let L=bank?imgs:usadasCat();if(bd)L=filtraUso(L,fPick);pickList=L;$("pkF").style.display=bd?"flex":"none";if(bd)barra("pkF",fPick,"setFPick",imgs);
+  $("pk").innerHTML=L.length?L.map((x,i)=>`<div class="im" onclick="escolher(${i})"><img src="${x.data}" alt="" loading="lazy"><span>${esc(x.cat?x.nomes[0]+(x.nomes.length>1?" +"+(x.nomes.length-1):""):x.nome)}</span>${bd?badges(x):""}</div>`).join(""):`<p class="hint">${bank?(imgs.length?"Nenhuma imagem neste filtro.":"O banco está vazio. Envie fotos na aba Imagens."):"Nenhum produto com imagem ainda."}</p>`}
+function escolher(i){const f=pickCb,x=pickList[i];
+  if(pickProd){const cur=edit>=0?prods[edit]:null,uso=(x.cat?prods.filter(p=>p.imagem===x.data):usoDe(x)).filter(p=>p!==cur);
+    if(uso.length&&!confirm(`Esta imagem já é usada em: ${uso.slice(0,4).map(p=>p.nome).join(", ")}${uso.length>4?" e mais "+(uso.length-4):""}.\n\nUsar de novo pode criar um produto duplicado. Usar mesmo assim?`))return}
+  fecharM("mI");f(x)}
 
 /* ===== BANNERS ===== */
 function rBanners(){$("lbn").innerHTML=banners.length?banners.map((b,i)=>`<div class="pr"><img src="${b.imagem}" alt="" style="width:110px;height:74px"><div class="i2"><b>Banner ${i+1}</b><input value="${esc(b.link||"")}" placeholder="Link ao tocar (opcional)" onchange="banners[${i}].link=this.value.trim()"></div><button class="btn o s" onclick="mvB(${i},-1)" aria-label="Subir">↑</button><button class="btn o s" onclick="mvB(${i},1)" aria-label="Descer">↓</button><button class="btn r s" onclick="rmB(${i})">Remover</button></div>`).join(""):`<div class="card" style="text-align:center;color:var(--g)">Nenhum banner. Sem banners, o site mostra um painel roxo com o título da loja.</div>`}
