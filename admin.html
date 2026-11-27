@@ -177,6 +177,12 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
         <div class="card"><h3>Pix da loja</h3><div class="hint" style="margin-bottom:10px">Gera o QR Code com o total da sacolinha. Chave vazia desativa.</div>
           <div class="f"><label for="px1">Chave Pix</label><input id="px1" placeholder="CPF/CNPJ, e-mail, +55… ou aleatória" autocomplete="off"></div>
           <div class="g2"><div class="f"><label for="px2">Recebedor</label><input id="px2" maxlength="25"></div><div class="f"><label for="px3">Cidade</label><input id="px3" maxlength="15"></div></div></div></div>
+        <div class="card" style="margin-top:14px"><div class="row" style="margin-bottom:8px"><h3 style="margin:0">Cupom de primeira compra</h3><label class="sw" title="Ativar cupom" style="margin:0"><input type="checkbox" id="cpA" aria-label="Ativar cupom"><span></span></label></div>
+          <div class="hint" style="margin-bottom:10px">Aparece na sacolinha. Vale uma vez por aparelho e fica registrado no pedido (código e desconto). Desativado, o campo some da loja.</div>
+          <div class="g3"><div class="f"><label for="cpC">Código do cupom</label><input id="cpC" maxlength="20" placeholder="PRIMEIRA10" style="text-transform:uppercase"></div>
+            <div class="f"><label for="cpT">Tipo de desconto</label><select id="cpT"><option value="percentual">Percentual (%)</option><option value="valor">Valor fixo (R$)</option></select></div>
+            <div class="f"><label for="cpV">Valor do desconto</label><input id="cpV" inputmode="decimal" placeholder="10"></div></div>
+          <div class="f" style="max-width:260px"><label for="cpM">Pedido mínimo (R$, opcional)</label><input id="cpM" inputmode="decimal" placeholder="0"></div></div>
         <div class="row" style="margin:14px 0 0"><span></span><button class="btn" id="bls" onclick="salvarLoja()">Salvar configurações</button></div>
       </section>
     </main>
@@ -214,7 +220,7 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
   <label style="display:flex;gap:8px;align-items:center;font-weight:500;color:var(--t)"><input type="checkbox" id="prA"> Guardar o preço atual como "preço antigo" (aparece riscado na loja)</label>
   <div class="card" style="margin:12px 0;padding:12px;background:var(--bg);box-shadow:none"><b>Prévia</b><div id="prP" class="tw" style="margin-top:6px"></div></div>
   <div class="row" style="margin:0"><span class="hint" id="prN"></span><span class="tools"><button class="btn o" onclick="fecharM('mPr')">Cancelar</button><button class="btn" id="prB" onclick="aplicarPrecos()">Aplicar</button></span></div></div></div>
-<div id="mI" class="ov"><div class="mb"><h3>Escolher imagem</h3><div class="ig pick" id="pk"></div>
+<div id="mI" class="ov"><div class="mb"><h3>Escolher imagem</h3><div class="tools" id="pkTabs" style="margin-bottom:12px"><button class="btn s" id="pkB" onclick="pickTab('b')">Banco de imagens</button><button class="btn o s" id="pkC" onclick="pickTab('c')">Já usadas no catálogo</button></div><div class="ig pick" id="pk"></div>
   <div class="row" style="margin:14px 0 0"><span class="hint">Não achou? Envie na aba Imagens.</span><button class="btn o" onclick="fecharM('mI')">Fechar</button></div></div></div>
 <div class="toast" id="toast" role="status"></div>
 
@@ -286,7 +292,7 @@ const desde=()=>{const d=+$("per").value;return d?Date.now()-d*864e5:0};
 const pedPer=()=>{const s=desde();return pedidos.filter(p=>p.data>=s)};
 const stP=p=>p.status||"pendente",valP=p=>p.valorFinal!=null?+p.valorFinal:+p.total||0,tvP=p=>p.vendaEm||p.data;
 const vendasPer=()=>{const s=desde();return pedidos.filter(p=>stP(p)==="confirmada"&&tvP(p)>=s).sort((x,y)=>tvP(y)-tvP(x))};
-const itensTxt=p=>(p.itens||[]).map(i=>i.nome+" x"+i.qtd).join(", ");
+const itensTxt=p=>(p.itens||[]).map(i=>i.nome+" x"+i.qtd).join(", ")+(p.cupom?` · Cupom ${p.cupom} (−${R(p.desconto)})`:"");
 function mk(id,cfgc){if(CH[id])CH[id].destroy();const c=$(id);if(!c||typeof Chart==="undefined")return;CH[id]=new Chart(c,cfgc)}
 const PAL=["#5B2D8E","#C9A24B","#7B2FBE","#9a7728","#a78bd1","#2D1B5E","#E6CC8A"];
 function rDash(){
@@ -303,6 +309,7 @@ function rDash(){
    <div><span class="ic">${ico("eye")}</span><span><b>${prods.length-at.length}</b><small>Ocultos</small></span></div>
    <div><span class="ic">${ico("alert")}</span><span><b>${sem.length}</b><small>Sem imagem</small></span></div>
    <div><span class="ic">${ico("star")}</span><span><b>${pm}</b><small>Em promoção</small></span></div>
+   <div><span class="ic">${ico("tag")}</span><span><b>${R(pd.reduce((s,p)=>s+(+p.desconto||0),0))}</b><small>Descontos em cupons</small></span></div>
    <div><span class="ic">${ico("dollar")}</span><span><b>${R(med)}</b><small>Preço médio</small></span></div>
    <div><span class="ic">${ico("layers")}</span><span><b>${banners.length}</b><small>Banners</small></span></div>
    <div><span class="ic">${ico("image")}</span><span><b>${imgs.length}</b><small>Imagens no banco</small></span></div></div>
@@ -458,9 +465,14 @@ function rImgs(){$("bc").textContent=imgs.length+(imgs.length===1?" imagem":" im
 async function delImg(i){const x=imgs[i],uso=prods.filter(p=>p.imagemId===x.id).map(p=>p.nome);
   if(!confirm(uso.length?`Esta imagem foi usada em: ${uso.join(", ")}. Eles continuam com a cópia da foto. Excluir do banco?`:"Excluir esta imagem do banco?"))return;
   try{await db.collection("imagens").doc(x.id).delete();imgs.splice(i,1);rImgs();toast("Imagem excluída")}catch(e){toast(msg(e),1)}}
-function abrirPick(cb){pickCb=cb||(async x=>{try{selImg(await comprimir(x.data,640,.78),x.id)}catch(e){toast(msg(e),1)}});
-  $("pk").innerHTML=imgs.length?imgs.map((x,i)=>`<div class="im" onclick="escolher(${i})"><img src="${x.data}" alt=""><span>${esc(x.nome)}</span></div>`).join(""):`<p class="hint">O banco está vazio. Envie fotos na aba Imagens.</p>`;$("mI").style.display="flex"}
-function escolher(i){const f=pickCb;fecharM("mI");f(imgs[i])}
+let pickMode="b",pickList=[];
+function abrirPick(cb){pickCb=cb||(async x=>{try{x.cat?selImg(x.data,x.id):selImg(await comprimir(x.data,640,.78),x.id)}catch(e){toast(msg(e),1)}});
+  $("pkTabs").style.display=cb?"none":"flex";pickMode="b";rPick();$("mI").style.display="flex"}
+function usadasCat(){const m=new Map();prods.forEach(p=>{if(!p.imagem)return;if(!m.has(p.imagem))m.set(p.imagem,{data:p.imagem,id:p.imagemId||"",nomes:[],cat:true});m.get(p.imagem).nomes.push(p.nome)});return[...m.values()]}
+function pickTab(t){pickMode=t;rPick()}
+function rPick(){const L=pickList=pickMode==="c"?usadasCat():imgs;$("pkB").className="btn s"+(pickMode==="b"?"":" o");$("pkC").className="btn s"+(pickMode==="c"?"":" o");
+  $("pk").innerHTML=L.length?L.map((x,i)=>`<div class="im" onclick="escolher(${i})"><img src="${x.data}" alt="" loading="lazy"><span>${esc(x.cat?x.nomes[0]+(x.nomes.length>1?" +"+(x.nomes.length-1):""):x.nome)}</span></div>`).join(""):`<p class="hint">${pickMode==="c"?"Nenhum produto com imagem ainda.":"O banco está vazio. Envie fotos na aba Imagens."}</p>`}
+function escolher(i){const f=pickCb,x=pickList[i];fecharM("mI");f(x)}
 
 /* ===== BANNERS ===== */
 function rBanners(){$("lbn").innerHTML=banners.length?banners.map((b,i)=>`<div class="pr"><img src="${b.imagem}" alt="" style="width:110px;height:74px"><div class="i2"><b>Banner ${i+1}</b><input value="${esc(b.link||"")}" placeholder="Link ao tocar (opcional)" onchange="banners[${i}].link=this.value.trim()"></div><button class="btn o s" onclick="mvB(${i},-1)" aria-label="Subir">↑</button><button class="btn o s" onclick="mvB(${i},1)" aria-label="Descer">↓</button><button class="btn r s" onclick="rmB(${i})">Remover</button></div>`).join(""):`<div class="card" style="text-align:center;color:var(--g)">Nenhum banner. Sem banners, o site mostra um painel roxo com o título da loja.</div>`}
@@ -481,7 +493,7 @@ function rRel(){
 function baixar(nome,linhas){const t="\ufeff"+linhas.map(r=>r.map(c=>`"${String(c??"").replace(/"/g,'""')}"`).join(";")).join("\r\n"),a=document.createElement("a");
   a.href=URL.createObjectURL(new Blob([t],{type:"text/csv;charset=utf-8"}));a.download=nome;document.body.appendChild(a);a.click();a.remove()}
 function csvProd(){baixar("produtos-cheiro-de-luxo.csv",[["Produto","Marca","Categoria","Preço","Preço antigo","Volume","Selo","Status","Imagem"],...prods.map(p=>[p.nome,p.marca,catN(p.categoria),String(p.preco).replace(".",","),p.precoAntigo?String(p.precoAntigo).replace(".",","):"",p.ml,p.badge,p.ativo===false?"Oculto":"Ativo",p.imagem?"Sim":"Não"])])}
-function csvPed(){baixar("pedidos-cheiro-de-luxo.csv",[["Código","Data do pedido","Cidade","Itens","Total do pedido","Status","Data da venda","Valor da venda"],...pedPer().map(p=>[p.codigo||p.id,dt(p.data),p.cidade||"",(p.itens||[]).map(i=>i.nome+" x"+i.qtd).join(" | "),String(p.total).replace(".",","),stP(p)==="confirmada"?"Confirmada":"Aguardando",stP(p)==="confirmada"?dt(tvP(p)):"",stP(p)==="confirmada"?String(valP(p)).replace(".",","):""])])}
+function csvPed(){baixar("pedidos-cheiro-de-luxo.csv",[["Código","Data do pedido","Cidade","Itens","Total do pedido","Cupom","Desconto","Status","Data da venda","Valor da venda"],...pedPer().map(p=>[p.codigo||p.id,dt(p.data),p.cidade||"",(p.itens||[]).map(i=>i.nome+" x"+i.qtd).join(" | "),String(p.total).replace(".",","),p.cupom||"",p.desconto?String(p.desconto).replace(".",","):"",stP(p)==="confirmada"?"Confirmada":"Aguardando",stP(p)==="confirmada"?dt(tvP(p)):"",stP(p)==="confirmada"?String(valP(p)).replace(".",","):""])])}
 
 /* ===== CONFIGURAÇÕES ===== */
 function logoComprimir(src,max){return new Promise((ok,no)=>{const im=new Image();
@@ -489,7 +501,7 @@ function logoComprimir(src,max){return new Promise((ok,no)=>{const im=new Image(
     c.getContext("2d").drawImage(im,0,0,c.width,c.height);let d=c.toDataURL("image/webp",.9);if(!d.startsWith("data:image/webp"))d=c.toDataURL("image/png");ok(d)};
   im.onerror=()=>no(new Error("Não foi possível ler a imagem"));im.src=src})}
 function mostrarLogo(){$("lgp").src=logoNovo;$("lgp").style.display=logoNovo?"block":"none";$("lgv").textContent=logoNovo?"":"Sem logo: o site mostra o nome da loja em texto."}
-function rConfig(){logoNovo=cfg.logo||"";mostrarLogo();$("ct1").value=cfg.whatsapp||"";$("ct2").value=cfg.instagram||"";$("px1").value=cfg.pixChave||"";$("px2").value=cfg.pixNome||"";$("px3").value=cfg.pixCidade||""}
+function rConfig(){logoNovo=cfg.logo||"";mostrarLogo();$("ct1").value=cfg.whatsapp||"";$("ct2").value=cfg.instagram||"";$("px1").value=cfg.pixChave||"";$("px2").value=cfg.pixNome||"";$("px3").value=cfg.pixCidade||"";const cp=cfg.cupom||{};$("cpA").checked=!!cp.ativo;$("cpC").value=cp.codigo||"";$("cpT").value=cp.tipo||"percentual";$("cpV").value=cp.valor?String(cp.valor).replace(".",","):"";$("cpM").value=cp.minimo?String(cp.minimo).replace(".",","):""}
 $("lgf").onchange=async e=>{const f=e.target.files[0];if(!f)return;
   try{logoNovo=await logoComprimir(await lerArq(f),520);mostrarLogo();toast("Logo pronta. Toque em Salvar para publicar.")}catch(er){toast(msg(er),1)}e.target.value=""};
 function remLogo(){logoNovo="";mostrarLogo()}
@@ -497,6 +509,9 @@ async function salvarLoja(){
   let k=$("px1").value.trim();if(!k.includes("@"))k=k.replace(/[\s().-]/g,"");
   const d={logo:logoNovo,pixChave:k,pixNome:$("px2").value.trim(),pixCidade:$("px3").value.trim(),whatsapp:$("ct1").value.replace(/\D/g,""),instagram:$("ct2").value.trim().replace(/^@/,"")};
   if(k&&(!d.pixNome||!d.pixCidade))return toast("Informe o nome do recebedor e a cidade do Pix",1);
+  const cv=num($("cpV").value),cc=$("cpC").value.toUpperCase().replace(/[^A-Z0-9]/g,"");
+  if($("cpA").checked){if(!/^[A-Z0-9]{3,20}$/.test(cc))return toast("Cupom: use de 3 a 20 letras ou números no código",1);if(!(cv>0))return toast("Cupom: informe o valor do desconto",1);if($("cpT").value==="percentual"&&cv>90)return toast("Cupom: o percentual máximo é 90%",1)}
+  d.cupom={ativo:$("cpA").checked,codigo:cc,tipo:$("cpT").value,valor:cv||0,minimo:num($("cpM").value)||0};
   $("bls").disabled=true;
   try{await db.collection("config").doc("loja").set(d,{merge:true});cfg={...cfg,...d};$("lbS").innerHTML=logoHtml(cfg.logo);toast("Configurações salvas. Já estão na loja.")}catch(e){toast(msg(e),1)}
   $("bls").disabled=false;

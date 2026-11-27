@@ -169,6 +169,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
 #pixQr img,#pixQr canvas{display:block}
 #pixCod{width:100%;margin:10px 0 8px;padding:10px;border:0;border-radius:12px;background:rgba(120,120,128,.1);font-size:.72rem;resize:none}
 .sh h2,.bf h2{font-family:"Playfair Display",Poppins,serif}
+.cp-row{display:flex;gap:8px}.cp-row input{flex:1;min-width:0;text-transform:uppercase}
+.cp-b{padding:0 18px;border-radius:12px;background:var(--p);color:#fff;font-weight:800}
+#cupomMsg{display:block;margin-top:4px;font-size:.8rem;font-weight:700}#cupomMsg.ok{color:#16a34a}#cupomMsg.er{color:#d92d20}
+#cupomMsg a{text-decoration:underline;cursor:pointer;margin-left:6px;color:var(--g)}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -287,6 +291,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
     <div class="ch"><h3 id="tCart">Sua sacolinha 🛍️</h3><p class="prazo">⏱ Envio combinado pelo WhatsApp</p></div>
     <div id="listaCarrinho"></div>
     <div class="cf">
+      <div id="cupomBox" style="display:none;margin-bottom:8px"><div class="cp-row"><input id="cupomIn" placeholder="🎟️ Cupom de primeira compra" autocapitalize="characters" autocomplete="off"><button type="button" class="cp-b" onclick="aplicarCupom()">Aplicar</button></div><small id="cupomMsg"></small></div>
       <p id="totalCarrinho"></p>
       <input id="nomeCart" placeholder="👤 Seu nome"><input id="cidadeCart" placeholder="📍 Cidade"><input id="enderecoCart" placeholder="🏠 Endereço">
       <p id="contadorEnvio"></p>
@@ -302,7 +307,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
 <script>
 /* ===== CONFIG (mesmos valores da loja anterior) ===== */
 const CONFIG={nomeLoja:"Cheiro de Luxo · Perfumes",telefone:"5585999999999",apiProdutos:"produtos.json"};
-var LOJA={};
+var LOJA={},cupomAplicado=null;
 var SHEET_API_URL=CONFIG.apiProdutos, TELEFONE=CONFIG.telefone;
 const CATS={feminino:["Feminino","fa-venus"],masculino:["Masculino","fa-mars"],unissex:["Unissex","fa-spray-can-sparkles"],kits:["Kits e presentes","fa-gift"]};
 const PH="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10" fill="#F2EEF8"/></svg>');
@@ -437,6 +442,21 @@ function addCarrinho(i,o){
 function atualizarCarrinhoUI(){$("cart-count").innerText=carrinho.reduce((s,p)=>s+(p.qtd||1),0);salvar()}
 function abrirCarrinho(){renderCarrinho();$("modalCarrinho").style.display="flex";travar()}
 function fecharCarrinho(){$("modalCarrinho").style.display="none";travar()}
+/* ===== CUPOM DE PRIMEIRA COMPRA (configurado no painel: config/loja.cupom) ===== */
+const cupomOk=()=>{const c=LOJA.cupom;return !!(c&&c.ativo&&c.codigo&&+c.valor>0)};
+const cupomUsado=()=>{try{return localStorage.getItem("cl_cupom_usado")==="1"}catch(e){return false}};
+function descontoCupom(sub){if(!cupomAplicado)return 0;const c=cupomAplicado;let d=c.tipo==="valor"?+c.valor:sub*(+c.valor)/100;d=Math.min(d,Math.max(0,sub-1));return Math.max(0,Math.round(d*100)/100)}
+function cupomMsg(t,k,rem){const m=$("cupomMsg");m.className=k||"";m.innerHTML=esc(t)+(rem?' <a onclick="removerCupom()">remover</a>':"")}
+function aplicarCupom(){
+  const cod=$("cupomIn").value.trim().toUpperCase().replace(/\s/g,"");
+  if(!cupomOk()||cupomUsado())return cupomMsg(cupomUsado()?"O cupom vale apenas na primeira compra.":"Cupom indisponível.","er");
+  if(!cod)return cupomMsg("Digite o código do cupom.","er");
+  if(cod!==String(LOJA.cupom.codigo).toUpperCase())return cupomMsg("Cupom inválido.","er");
+  const sub=carrinho.reduce((t,i)=>t+i.preco*i.qtd,0),min=+LOJA.cupom.minimo||0;
+  if(sub<min)return cupomMsg("Pedido mínimo de "+R(min)+" para usar este cupom.","er");
+  cupomAplicado={...LOJA.cupom};renderCarrinho();
+}
+function removerCupom(){cupomAplicado=null;$("cupomIn").value="";renderCarrinho()}
 function renderCarrinho(){
   const l=$("listaCarrinho");let total=0;
   l.innerHTML=carrinho.length?"":`<p style="text-align:center;color:#aaa;padding:24px;font-weight:700">Carrinho vazio 🛒</p>`;
@@ -446,7 +466,11 @@ function renderCarrinho(){
     el.innerHTML=`<div class="item-header"><img src="${esc(it.imagem)}" alt="${esc(it.nome)}" onerror="this.onerror=null;this.src=PH"><div style="flex:1"><div class="item-nome">${esc(it.nome)}</div><div class="item-desc">${esc(it.obs?"📝 "+it.obs:it.descricao||"Sem descrição")}</div><div class="item-preco">${R(it.preco)}</div></div></div><div class="item-footer"><div class="qc"><button onclick="diminuirQtd(${i})" aria-label="Diminuir">−</button><span>${it.qtd}</span><button onclick="aumentarQtd(${i})" aria-label="Aumentar">+</button></div><div>Subtotal: ${R(sub)}</div></div><button class="btn-remover" onclick="removerItem(${i})">🗑️ Remover</button>`;
     l.appendChild(el);
   });
-  $("totalCarrinho").innerHTML=`Total: ${R(total)}`;window._tot=total;$("pixBox").style.display="none";$("btnPix").style.display=LOJA.pixChave&&total>0?"flex":"none";
+  if(cupomAplicado&&(!cupomOk()||total<(+cupomAplicado.minimo||0)))cupomAplicado=null;
+  const desc=descontoCupom(total),net=Math.round((total-desc)*100)/100;
+  $("cupomBox").style.display=cupomOk()&&!cupomUsado()&&carrinho.length?"block":"none";
+  if(cupomAplicado)cupomMsg(`Cupom ${cupomAplicado.codigo} aplicado: −${R(desc)}`,"ok",true);else if($("cupomMsg").className==="ok")cupomMsg("","");
+  $("totalCarrinho").innerHTML=desc>0?`Subtotal: ${R(total)}<br>Cupom ${esc(cupomAplicado.codigo)}: −${R(desc)}<br>Total: ${R(net)}`:`Total: ${R(total)}`;window._tot=net;$("pixBox").style.display="none";$("btnPix").style.display=LOJA.pixChave&&net>0?"flex":"none";
 }
 function aumentarQtd(i){carrinho[i].qtd++;renderCarrinho();atualizarCarrinhoUI()}
 function diminuirQtd(i){carrinho[i].qtd>1?carrinho[i].qtd--:carrinho.splice(i,1);renderCarrinho();atualizarCarrinhoUI()}
@@ -461,11 +485,12 @@ function finalizarCarrinho(){
   btn.style.display="none";ce.style.display="block";ce.innerText="🚀 Preparando seu pedido…";
   let total=0,lista="";const cod=novoCodigo();
   carrinho.forEach(p=>{const s=p.preco*p.qtd;total+=s;lista+=`${p.nome} x${p.qtd} - ${R(s)}${p.obs?" (Obs: "+p.obs+")":""}\n`});
-  const msg=`✨ *NOVO PEDIDO - Cheiro de Luxo* ✨\n🔖 *Código:* ${cod}\n\n🛍️ *Pedido:*\n${lista}\n💰 *Total:* ${R(total)}\n\n👤 *Cliente:* ${nome}\n📍 *Cidade:* ${cidade}\n🏠 *Endereço:* ${endereco}\n\n━━━━━━━━━━━━━━━━\n✨ Obrigado por escolher a Cheiro de Luxo!`;
-  registrarPedido(carrinho,total,cidade,cod);
+  const desc=descontoCupom(total),net=Math.round((total-desc)*100)/100;
+  const msg=`✨ *NOVO PEDIDO - Cheiro de Luxo* ✨\n🔖 *Código:* ${cod}\n\n🛍️ *Pedido:*\n${lista}\n${desc>0?`💰 *Subtotal:* ${R(total)}\n🎟️ *Cupom ${cupomAplicado.codigo}:* −${R(desc)}\n`:""}💰 *Total:* ${R(net)}\n\n👤 *Cliente:* ${nome}\n📍 *Cidade:* ${cidade}\n🏠 *Endereço:* ${endereco}\n\n━━━━━━━━━━━━━━━━\n✨ Obrigado por escolher a Cheiro de Luxo!`;
+  registrarPedido(carrinho,net,cidade,cod,desc>0?{cupom:cupomAplicado.codigo,desconto:desc}:null);if(desc>0){try{localStorage.setItem("cl_cupom_usado","1")}catch(e){}}
   let t=5;const iv=setInterval(()=>{
     ce.innerText=`🚀 Enviando seu pedido (${t}s)`;t--;
-    if(t<0){clearInterval(iv);carrinho=[];atualizarCarrinhoUI();renderCarrinho();["nomeCart","cidadeCart","enderecoCart"].forEach(k=>$(k).value="");ce.style.display="none";btn.style.display="flex";fecharCarrinho();location.href=`https://wa.me/${TELEFONE}?text=${encodeURIComponent(msg)}`}
+    if(t<0){clearInterval(iv);carrinho=[];cupomAplicado=null;atualizarCarrinhoUI();renderCarrinho();["nomeCart","cidadeCart","enderecoCart"].forEach(k=>$(k).value="");ce.style.display="none";btn.style.display="flex";fecharCarrinho();location.href=`https://wa.me/${TELEFONE}?text=${encodeURIComponent(msg)}`}
   },1000);
 }
 
@@ -527,8 +552,8 @@ window.addEventListener("load",ajustaPad);window.addEventListener("resize",ajust
 /* ===== LOGO + PIX (config/loja no Firestore, editado no painel) ===== */
 const COD_AL="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 function novoCodigo(){const a=new Uint8Array(6);if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(a);else a.forEach((_,i)=>a[i]=Math.random()*256);return"CL-"+[...a].map(n=>COD_AL[n%COD_AL.length]).join("")}
-function registrarPedido(itens,total,cidade,codigo){
-  return new Promise(ok=>{try{db.collection("pedidos").doc(codigo).set({data:Date.now(),total:Math.round(total*100)/100,cidade:String(cidade||"").slice(0,40),itens:itens.slice(0,50).map(i=>({nome:String(i.nome).slice(0,80),qtd:+i.qtd||1,preco:+i.preco||0})),codigo,status:"pendente"}).then(ok,ok)}catch(e){ok()}})}
+function registrarPedido(itens,total,cidade,codigo,extra){
+  return new Promise(ok=>{try{db.collection("pedidos").doc(codigo).set({data:Date.now(),total:Math.round(total*100)/100,cidade:String(cidade||"").slice(0,40),itens:itens.slice(0,50).map(i=>({nome:String(i.nome).slice(0,80),qtd:+i.qtd||1,preco:+i.preco||0})),codigo,status:"pendente",...(extra||{})}).then(ok,ok)}catch(e){ok()}})}
 async function carregarConfig(){
   try{const d=await db.collection("config").doc("loja").get();if(!d.exists)return;LOJA=d.data()||{};
     if(LOJA.logo){const a=document.querySelector("a.logo");a.innerHTML=`<img src="${LOJA.logo}" alt="${esc(CONFIG.nomeLoja)}" style="height:48px;width:auto;display:block">`;a.style.cssText="display:flex;align-items:center"}
