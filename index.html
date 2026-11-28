@@ -4,6 +4,23 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title id="tituloLoja">Cheiro de Luxo · Perfumes</title>
+<!-- Prévia ao compartilhar o link (WhatsApp, Telegram, Facebook, X). Troque CheirodeLuxo/ pelo caminho real do site (veja LEIA-ME.txt) -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Cheiro de Luxo">
+<meta property="og:locale" content="pt_BR">
+<meta property="og:title" content="Cheiro de Luxo · Perfumes que Inspiram">
+<meta property="og:description" content="Perfumes e body splash selecionados. Peça pelo WhatsApp e receba em casa.">
+<meta property="og:url" content="https://vitrineprostore.github.io/CheirodeLuxo/">
+<meta property="og:image" content="https://vitrineprostore.github.io/CheirodeLuxo/compartilhar.jpg">
+<meta property="og:image:secure_url" content="https://vitrineprostore.github.io/CheirodeLuxo/compartilhar.jpg">
+<meta property="og:image:type" content="image/jpeg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="808">
+<meta property="og:image:alt" content="Cheiro de Luxo - Perfumes que Inspiram">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cheiro de Luxo · Perfumes que Inspiram">
+<meta name="twitter:description" content="Perfumes e body splash selecionados. Peça pelo WhatsApp e receba em casa.">
+<meta name="twitter:image" content="https://vitrineprostore.github.io/CheirodeLuxo/compartilhar.jpg">
 <meta name="description" content="Perfumes femininos, masculinos e unissex. Peça pelo WhatsApp.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -173,6 +190,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
 .cp-b{padding:0 18px;border-radius:12px;background:var(--p);color:#fff;font-weight:800}
 #cupomMsg{display:block;margin-top:4px;font-size:.8rem;font-weight:700}#cupomMsg.ok{color:#16a34a}#cupomMsg.er{color:#d92d20}
 #cupomMsg a{text-decoration:underline;cursor:pointer;margin-left:6px;color:var(--g)}
+.est{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;font-weight:700;padding:3px 11px;border-radius:99px;background:rgba(91,45,142,.08);color:var(--p);letter-spacing:.01em}
+.est i{font-size:.82em}.est.low{background:#fbf3dc;color:#8a6a1c}.est.zero{background:#eceaf1;color:#6a6478}
+.es{margin:-2px 0 8px}.pc.sold .pi img{filter:grayscale(.7);opacity:.65}.b1:disabled{opacity:.55;cursor:not-allowed}
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
@@ -268,12 +288,12 @@ body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Nunit
         <h2 id="produtoNome"></h2>
         <div class="mp" id="modalPreco"></div>
         <p class="mdesc" id="modalDesc"></p>
-        <p id="viewers" class="viewers"></p>
+        <p id="viewers" class="viewers"></p><div id="modalEst" style="margin:4px 0 6px"></div>
         <div class="fl" id="varWrap" hidden><label for="variacao">Escolha o tamanho</label><select id="variacao"></select></div>
         <div class="qr"><b>Quantidade</b><div class="qc"><button onclick="qtdModal(-1)" aria-label="Diminuir">−</button><span id="qtdModal">1</span><button onclick="qtdModal(1)" aria-label="Aumentar">+</button></div></div>
         <div class="fl"><label for="obs">Observações (opcional)</label><textarea id="obs" placeholder="Ex.: embalar para presente"></textarea></div>
-        <button class="b1" style="padding:14px;border-radius:14px;font-size:.95rem" onclick="addDoModal()"><i class="fas fa-bag-shopping"></i> Adicionar à sacolinha</button>
-        <details><summary style="cursor:pointer;font-weight:800;margin:6px 0"><i class="fab fa-whatsapp"></i> Comprar só este perfume pelo WhatsApp</summary>
+        <button class="b1" style="padding:14px;border-radius:14px;font-size:.95rem" id="btnAddModal" onclick="addDoModal()"><i class="fas fa-bag-shopping"></i> Adicionar à sacolinha</button>
+        <details id="wppSolo"><summary style="cursor:pointer;font-weight:800;margin:6px 0"><i class="fab fa-whatsapp"></i> Comprar só este perfume pelo WhatsApp</summary>
           <input id="nomeProduto" placeholder="👤 Seu nome"><input id="cidadeProduto" placeholder="📍 Cidade"><input id="enderecoProduto" placeholder="🏠 Endereço">
           <p id="total" style="font-weight:800;margin-bottom:8px"></p>
           <button class="bw" onclick="enviarPedido()"><i class="fab fa-whatsapp"></i> Finalizar no WhatsApp</button></details>
@@ -331,11 +351,11 @@ function mapear(p){
   let v=p.variacoes||p.variacao||[];
   if(typeof v==="string")v=v.split(",");
   v=(Array.isArray(v)?v:[]).map(x=>typeof x==="object"?{nome:String(x.nome||"").trim(),preco:x.preco!=null?Number(String(x.preco).replace(",",".")):null}:{nome:String(x).trim(),preco:null}).filter(x=>x.nome);
-  return{ativo:p.ativo!==false,marca:String(p.marca||""),ml:String(p.ml||""),antigo:Number(p.precoAntigo)||0,notas:p.notas||{},nome:String(p.nome||"").trim(),preco:Number(String(p.preco).replace(",","."))||0,categoria:String(p.categoria||"").toLowerCase().trim(),imagem:String(p.imagem||""),descricao:String(p.descricao||""),badge:String(p.badge||""),variacoes:v};
+  return{ativo:p.ativo!==false,marca:String(p.marca||""),ml:String(p.ml||""),antigo:Number(p.precoAntigo)||0,notas:p.notas||{},nome:String(p.nome||"").trim(),preco:Number(String(p.preco).replace(",","."))||0,categoria:String(p.categoria||"").toLowerCase().trim(),imagem:String(p.imagem||""),descricao:String(p.descricao||""),badge:String(p.badge||""),variacoes:v,id:String(p.id||""),estoque:(p.estoque===null||p.estoque===undefined||p.estoque==="")?null:Math.max(0,Math.floor(Number(p.estoque))||0)};
 }
 async function carregarProdutos(){
   let data=null;
-  try{const sn=await db.collection("produtos").get();data=sn.docs.map(d=>d.data()).sort((a,b)=>(a.ordem||0)-(b.ordem||0))}catch(e){data=null}
+  try{const sn=await db.collection("produtos").get();data=sn.docs.map(d=>({...d.data(),id:d.data().id||d.id})).sort((a,b)=>(a.ordem||0)-(b.ordem||0))}catch(e){data=null}
   if(!data||!data.length)for(const u of ["produtos.json"]){
     try{const r=await fetch(u,{cache:"no-cache"});if(!r.ok)throw 0;data=await r.json();if(Array.isArray(data)&&data.length)break}catch(e){data=null}
   }
@@ -348,7 +368,11 @@ async function carregarProdutos(){
 
 /* ===== CARD ===== */
 const bc=b=>{b=norm(b);return b.includes("novidade")?"b-n":b.includes("promo")?"b-p":"b-d"};
-const card=(p,i)=>`<article class="pc"><button class="pi" data-open="${i}" aria-label="Ver detalhes de ${esc(p.nome)}">${p.badge?`<span class="bd ${bc(p.badge)}">${esc(p.badge)}</span>`:""}<img src="${esc(p.imagem)}" alt="${esc(p.nome)}" loading="lazy" onerror="this.onerror=null;this.src=PH"></button><div class="pb"><small class="pd">${esc([p.marca,p.ml].filter(Boolean).join(" · "))}</small><h3 data-open="${i}">${esc(p.nome)}</h3><p class="pd">${esc(p.descricao)}</p><div class="pr"><strong>${p.antigo>p.preco?`<s style="font:400 .85rem Nunito;color:var(--g)">${R(p.antigo)}</s> `:""}${R(p.preco)}</strong></div><div class="pa"><button class="b2" data-open="${i}">Detalhes</button><button class="b1" data-add="${i}"><i class="fas fa-bag-shopping"></i> Adicionar</button></div></div></article>`;
+/* ===== ESTOQUE (campo "estoque" do produto; vazio = não controlado) ===== */
+const EST_BAIXO=5;
+const estInfo=p=>{if(p.estoque==null)return null;if(p.estoque<=0)return{k:"zero",i:"fa-ban",t:"Esgotado"};if(p.estoque<=EST_BAIXO)return{k:"low",i:"fa-hourglass-half",t:p.estoque===1?"Última unidade":`Últimas ${p.estoque} unidades`};return{k:"ok",i:"fa-box-open",t:`${p.estoque} em estoque`}};
+const estHtml=p=>{const e=estInfo(p);return e?`<span class="est ${e.k}"><i class="fa-solid ${e.i}"></i>${e.t}</span>`:""};
+const card=(p,i)=>`<article class="pc${p.estoque===0?" sold":""}"><button class="pi" data-open="${i}" aria-label="Ver detalhes de ${esc(p.nome)}">${p.badge?`<span class="bd ${bc(p.badge)}">${esc(p.badge)}</span>`:""}<img src="${esc(p.imagem)}" alt="${esc(p.nome)}" loading="lazy" onerror="this.onerror=null;this.src=PH"></button><div class="pb"><small class="pd">${esc([p.marca,p.ml].filter(Boolean).join(" · "))}</small><h3 data-open="${i}">${esc(p.nome)}</h3><p class="pd">${esc(p.descricao)}</p><div class="pr"><strong>${p.antigo>p.preco?`<s style="font:400 .85rem Nunito;color:var(--g)">${R(p.antigo)}</s> `:""}${R(p.preco)}</strong></div>${estHtml(p)?`<div class="es">${estHtml(p)}</div>`:""}<div class="pa"><button class="b2" data-open="${i}">Detalhes</button>${p.estoque===0?`<button class="b1" disabled><i class="fas fa-ban"></i> Esgotado</button>`:`<button class="b1" data-add="${i}"><i class="fas fa-bag-shopping"></i> Adicionar</button>`}</div></div></article>`;
 
 /* ===== RENDER ===== */
 function listaCats(){const f=Object.keys(CATS).filter(c=>produtos.some(p=>p.categoria===c));produtos.forEach(p=>{if(p.categoria&&!f.includes(p.categoria))f.push(p.categoria)});return f}
@@ -401,7 +425,7 @@ function abrirProduto(i,push=true){
   const im=$("modalImg");im.src=p.imagem;im.alt=p.nome;im.onerror=()=>{im.onerror=null;im.src=PH};
   const b=$("modalBadge");b.textContent=p.badge;b.className="bd "+bc(p.badge);b.style.display=p.badge?"":"none";
   $("varWrap").hidden=!p.variacoes.length;$("variacao").innerHTML=p.variacoes.map(v=>`<option>${esc(v.nome)}${v.preco!=null&&!isNaN(v.preco)?" — "+R(v.preco):""}</option>`).join("");
-  $("obs").value="";
+  $("obs").value="";$("modalEst").innerHTML=estHtml(p);{const so=p.estoque===0,bt=$("btnAddModal");bt.disabled=so;bt.innerHTML=so?'<i class="fas fa-ban"></i> Esgotado':'<i class="fas fa-bag-shopping"></i> Adicionar à sacolinha';$("wppSolo").style.display=so?"none":""}
   {const n=p.notas;$("viewers").textContent=[n.topo&&"Topo: "+n.topo,n.coracao&&"Coração: "+n.coracao,n.fundo&&"Fundo: "+n.fundo].filter(Boolean).join(" · ")}
   const rel=produtos.map((x,k)=>[x,k]).filter(([x,k])=>k!==i&&x.categoria===p.categoria).slice(0,6);
   $("rel").innerHTML=rel.length?`<h3>Veja também</h3><div class="car">${rel.map(([x,k])=>card(x,k)).join("")}</div>`:"";
@@ -409,7 +433,7 @@ function abrirProduto(i,push=true){
   if(push)history.pushState({m:1},"","#produto-"+slug(p.nome));
 }
 $("variacao").addEventListener("change",atualizarTotal);
-function qtdModal(d){qtdAtual=Math.max(1,qtdAtual+d);atualizarTotal()}
+function qtdModal(d){const mx=produtos[cur]?produtos[cur].estoque:null;qtdAtual=Math.max(1,qtdAtual+d);if(mx!=null&&qtdAtual>mx){qtdAtual=Math.max(1,mx);toast("Só temos "+mx+" unidade(s) em estoque")}atualizarTotal()}
 function fecharModal(){
   if($("modal").style.display!=="flex")return;
   $("modal").style.display="none";travar();
@@ -426,7 +450,7 @@ function enviarPedido(){
   if(!nome||!cidade||!endereco){alert("Preencha todos os dados");return}
   const p=produtos[cur],v=p.variacoes[$("variacao").selectedIndex],obs=$("obs").value.trim(),total=precoAtual()*qtdAtual,cod=novoCodigo();
   const msg=`✨ *NOVO PEDIDO - Cheiro de Luxo* ✨\n🔖 *Código:* ${cod}\n\n🛍️ *Produto:* ${p.nome}${v?" — "+v.nome:""}${qtdAtual>1?" x"+qtdAtual:""}\n💰 *Valor:* ${R(total)}${obs?"\n📝 *Obs:* "+obs:""}\n\n👤 *Cliente:* ${nome}\n📍 *Cidade:* ${cidade}\n🏠 *Endereço:* ${endereco}\n\n━━━━━━━━━━━━━━━━\n✨ Obrigado por escolher a Cheiro de Luxo!`;
-  Promise.race([registrarPedido([{nome:p.nome+(v?" — "+v.nome:""),qtd:qtdAtual,preco:precoAtual()}],total,cidade,cod),new Promise(r=>setTimeout(r,900))]).then(()=>{location.href=`https://wa.me/${TELEFONE}?text=${encodeURIComponent(msg)}`});
+  Promise.race([registrarPedido([{nome:p.nome+(v?" — "+v.nome:""),qtd:qtdAtual,preco:precoAtual(),pid:p.id}],total,cidade,cod),new Promise(r=>setTimeout(r,900))]).then(()=>{location.href=`https://wa.me/${TELEFONE}?text=${encodeURIComponent(msg)}`});
 }
 
 /* ===== CARRINHO ===== */
@@ -434,10 +458,13 @@ try{carrinho=JSON.parse(localStorage.getItem("ra_carrinho")||"[]")}catch(e){carr
 function salvar(){try{localStorage.setItem("ra_carrinho",JSON.stringify(carrinho))}catch(e){}}
 function addCarrinho(i,o){
   const p=produtos[i];if(!p)return;
-  const nome=o.variacao?`${p.nome} — ${o.variacao}`:p.nome,preco=o.preco!=null?o.preco:p.preco,obs=o.obs||"";
+  const nome=o.variacao?`${p.nome} — ${o.variacao}`:p.nome,preco=o.preco!=null?o.preco:p.preco,obs=o.obs||"";let q=o.qtd||1,aviso=false;
+  if(p.estoque!=null){const emC=carrinho.filter(x=>x.pid&&x.pid===p.id).reduce((t,x)=>t+(x.qtd||1),0),livre=p.estoque-emC;
+    if(livre<=0)return toast(p.estoque<=0?"Produto esgotado":"Todas as unidades em estoque já estão na sacolinha");
+    if(q>livre){q=livre;aviso=true;toast("Só temos "+p.estoque+" unidade(s) em estoque")}}
   const ex=carrinho.find(x=>x.nome===nome&&x.obs===obs&&x.preco===preco);
-  if(ex)ex.qtd+=o.qtd||1;else carrinho.push({nome,preco,qtd:o.qtd||1,imagem:p.imagem,descricao:p.descricao,obs});
-  atualizarCarrinhoUI();toast("Adicionado à sacolinha");
+  if(ex)ex.qtd+=q;else carrinho.push({nome,preco,qtd:q,imagem:p.imagem,descricao:p.descricao,obs,pid:p.id});
+  atualizarCarrinhoUI();if(!aviso)toast("Adicionado à sacolinha");
 }
 function atualizarCarrinhoUI(){$("cart-count").innerText=carrinho.reduce((s,p)=>s+(p.qtd||1),0);salvar()}
 function abrirCarrinho(){renderCarrinho();$("modalCarrinho").style.display="flex";travar()}
@@ -472,7 +499,7 @@ function renderCarrinho(){
   if(cupomAplicado)cupomMsg(`Cupom ${cupomAplicado.codigo} aplicado: −${R(desc)}`,"ok",true);else if($("cupomMsg").className==="ok")cupomMsg("","");
   $("totalCarrinho").innerHTML=desc>0?`Subtotal: ${R(total)}<br>Cupom ${esc(cupomAplicado.codigo)}: −${R(desc)}<br>Total: ${R(net)}`:`Total: ${R(total)}`;window._tot=net;$("pixBox").style.display="none";$("btnPix").style.display=LOJA.pixChave&&net>0?"flex":"none";
 }
-function aumentarQtd(i){carrinho[i].qtd++;renderCarrinho();atualizarCarrinhoUI()}
+function aumentarQtd(i){const it=carrinho[i],pr=produtos.find(x=>x.id&&x.id===it.pid);if(pr&&pr.estoque!=null&&carrinho.filter(x=>x.pid===it.pid).reduce((t,x)=>t+x.qtd,0)>=pr.estoque){toast("Só temos "+pr.estoque+" unidade(s) em estoque");return}carrinho[i].qtd++;renderCarrinho();atualizarCarrinhoUI()}
 function diminuirQtd(i){carrinho[i].qtd>1?carrinho[i].qtd--:carrinho.splice(i,1);renderCarrinho();atualizarCarrinhoUI()}
 function removerItem(i){carrinho.splice(i,1);renderCarrinho();atualizarCarrinhoUI()}
 
@@ -553,7 +580,7 @@ window.addEventListener("load",ajustaPad);window.addEventListener("resize",ajust
 const COD_AL="ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 function novoCodigo(){const a=new Uint8Array(6);if(window.crypto&&crypto.getRandomValues)crypto.getRandomValues(a);else a.forEach((_,i)=>a[i]=Math.random()*256);return"CL-"+[...a].map(n=>COD_AL[n%COD_AL.length]).join("")}
 function registrarPedido(itens,total,cidade,codigo,extra){
-  return new Promise(ok=>{try{db.collection("pedidos").doc(codigo).set({data:Date.now(),total:Math.round(total*100)/100,cidade:String(cidade||"").slice(0,40),itens:itens.slice(0,50).map(i=>({nome:String(i.nome).slice(0,80),qtd:+i.qtd||1,preco:+i.preco||0})),codigo,status:"pendente",...(extra||{})}).then(ok,ok)}catch(e){ok()}})}
+  return new Promise(ok=>{try{db.collection("pedidos").doc(codigo).set({data:Date.now(),total:Math.round(total*100)/100,cidade:String(cidade||"").slice(0,40),itens:itens.slice(0,50).map(i=>({nome:String(i.nome).slice(0,80),qtd:+i.qtd||1,preco:+i.preco||0,id:String(i.pid||"").slice(0,80)})),codigo,status:"pendente",...(extra||{})}).then(ok,ok)}catch(e){ok()}})}
 async function carregarConfig(){
   try{const d=await db.collection("config").doc("loja").get();if(!d.exists)return;LOJA=d.data()||{};
     if(LOJA.logo){const a=document.querySelector("a.logo");a.innerHTML=`<img src="${LOJA.logo}" alt="${esc(CONFIG.nomeLoja)}" style="height:48px;width:auto;display:block">`;a.style.cssText="display:flex;align-items:center"}

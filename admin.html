@@ -138,7 +138,7 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
 
       <section id="v_produtos" hidden>
         <div class="row"><div class="tools"><input id="bp" placeholder="Buscar produto ou marca…" aria-label="Buscar"><select id="fcat" aria-label="Categoria"></select>
-          <select id="fst" aria-label="Status"><option value="">Todos</option><option value="a">Ativos</option><option value="o">Ocultos</option><option value="s">Sem imagem</option></select></div>
+          <select id="fst" aria-label="Status"><option value="">Todos</option><option value="a">Ativos</option><option value="o">Ocultos</option><option value="s">Sem imagem</option><option value="e">Estoque baixo / esgotado</option></select></div>
           <span class="tools"><button class="btn o" onclick="verDups()">Verificar duplicados</button><button class="btn" onclick="editar(-1)">Novo produto</button></span></div>
         <div class="hint" id="pc" style="margin-bottom:10px"></div><div class="lp" id="lp"></div>
       </section>
@@ -203,6 +203,7 @@ td{padding:10px;border-bottom:1px solid var(--bd);vertical-align:middle}tr:last-
     <div class="f"><label for="fb">Selo</label><select id="fb"><option value="">Nenhum</option><option>Novidade</option><option>Promoção</option><option>Lançamento</option><option>Mais vendido</option></select></div>
     <div class="f"><label for="fat">Aparece no site?</label><select id="fat"><option value="1">Sim</option><option value="0">Não (oculto)</option></select></div>
   </div>
+  <div class="f"><label for="fe">Estoque (unidades)</label><input id="fe" inputmode="numeric" placeholder="Vazio = não controlar estoque"><div class="hint">Aparece na loja. Ao confirmar uma venda, o estoque diminui automaticamente.</div></div>
   <div class="f"><label>Imagem do banco</label>
     <div class="sel-img"><img id="si" alt="" style="visibility:hidden"><div><button class="btn o s" onclick="abrirPick()">Escolher no banco</button> <button class="btn o s" onclick="selImg('','')">Remover</button><div class="hint" id="sn">Nenhuma imagem escolhida</div></div></div></div>
   <div class="g3">
@@ -312,6 +313,7 @@ function rDash(){
    <div><span class="ic">${ico("alert")}</span><span><b>${sem.length}</b><small>Sem imagem</small></span></div>
    <div><span class="ic">${ico("star")}</span><span><b>${pm}</b><small>Em promoção</small></span></div>
    <div><span class="ic">${ico("tag")}</span><span><b>${R(pd.reduce((s,p)=>s+(+p.desconto||0),0))}</b><small>Descontos em cupons</small></span></div>
+   <div><span class="ic">${ico("alert")}</span><span><b>${prods.filter(p=>p.estoque!=null&&p.estoque<=EB).length}</b><small>Estoque baixo ou esgotado</small></span></div>
    <div><span class="ic">${ico("dollar")}</span><span><b>${R(med)}</b><small>Preço médio</small></span></div>
    <div><span class="ic">${ico("layers")}</span><span><b>${banners.length}</b><small>Banners</small></span></div>
    <div><span class="ic">${ico("image")}</span><span><b>${imgs.length}</b><small>Imagens no banco</small></span></div></div>
@@ -343,7 +345,7 @@ function rVendas(){
 }
 function mostrarVenda(id){
   const p=pedidos.find(x=>x.id===id);if(!p)return;const ok=stP(p)==="confirmada";scrollTo(0,0);
-  $("vr").innerHTML=`<div style="background:var(--bg);border-radius:16px;padding:14px"><b>${esc(p.codigo||p.id)}</b> · ${dt(p.data)} · ${esc(p.cidade||"-")}<div class="hint" style="margin:4px 0">${esc(itensTxt(p))}</div><div>Total do pedido: <b>${R(p.total)}</b> ${ok?'<span class="tag">Já confirmada</span>':""}</div>`+
+  $("vr").innerHTML=`<div style="background:var(--bg);border-radius:16px;padding:14px"><b>${esc(p.codigo||p.id)}</b> · ${dt(p.data)} · ${esc(p.cidade||"-")}<div class="hint" style="margin:4px 0">${esc(itensTxt(p))}</div>${!ok&&baixasEstoque(p).length?`<div class="hint" style="margin-bottom:4px">Estoque será baixado: ${baixasEstoque(p).map(b=>esc(b.pr.nome)+" −"+b.qtd).join(", ")}</div>`:""}<div>Total do pedido: <b>${R(p.total)}</b> ${ok?'<span class="tag">Já confirmada</span>':""}</div>`+
    (ok?`<button class="btn r s" style="margin-top:10px" data-id="${esc(p.id)}" onclick="desfazerVenda(this.dataset.id)">Desfazer confirmação</button>`:`<div class="tools" style="margin-top:10px"><input id="vv" value="${String(p.total).replace(".",",")}" inputmode="decimal" style="width:140px" aria-label="Valor recebido"><button class="btn" data-id="${esc(p.id)}" onclick="confirmarVenda(this.dataset.id)">Confirmar venda</button></div><div class="hint" style="margin-top:6px">Altere o valor recebido se houve desconto ou frete.</div>`)+"</div>";
 }
 async function buscarVenda(){
@@ -355,13 +357,19 @@ async function buscarVenda(){
 }
 async function confirmarVenda(id){
   const p=pedidos.find(x=>x.id===id),v=num($("vv").value);if(!p||!(v>0))return toast("Informe o valor recebido",1);
-  const d={status:"confirmada",vendaEm:Date.now(),valorFinal:v};
-  try{await db.collection("pedidos").doc(id).update(d);Object.assign(p,d);$("vc").value="";$("vr").innerHTML="";rVendas();toast("Venda confirmada. Já está no dashboard.")}catch(e){toast(msg(e),1)}
+  const d={status:"confirmada",vendaEm:Date.now(),valorFinal:v},bx=baixasEstoque(p);
+  try{const ref=db.collection("pedidos").doc(id);
+    if(bx.length){d.estoqueBaixado=bx.map(b=>({id:b.id,qtd:b.qtd}));const bt=db.batch();bt.update(ref,d);bx.forEach(b=>bt.update(db.collection("produtos").doc(b.pr._doc),{estoque:b.novo}));await bt.commit();bx.forEach(b=>b.pr.estoque=b.novo)}
+    else await ref.update(d);
+    Object.assign(p,d);$("vc").value="";$("vr").innerHTML="";rVendas();toast(bx.length?"Venda confirmada e estoque atualizado.":"Venda confirmada. Já está no dashboard.")}catch(e){toast(msg(e),1)}
 }
 async function desfazerVenda(id){
   const p=pedidos.find(x=>x.id===id);if(!p||!confirm("Desfazer a confirmação da venda "+(p.codigo||p.id)+"? Ela volta para 'aguardando'."))return;
-  const d={status:"pendente",vendaEm:null,valorFinal:null};
-  try{await db.collection("pedidos").doc(id).update(d);Object.assign(p,d);$("vr").innerHTML="";rVendas();toast("Confirmação desfeita")}catch(e){toast(msg(e),1)}
+  const d={status:"pendente",vendaEm:null,valorFinal:null,estoqueBaixado:null},rs=(p.estoqueBaixado||[]).map(b=>{const pr=prods.find(q=>q.id===b.id||q._doc===b.id);return pr&&typeof pr.estoque==="number"?{pr,novo:pr.estoque+b.qtd}:null}).filter(Boolean);
+  try{const ref=db.collection("pedidos").doc(id);
+    if(rs.length){const bt=db.batch();bt.update(ref,d);rs.forEach(b=>bt.update(db.collection("produtos").doc(b.pr._doc),{estoque:b.novo}));await bt.commit();rs.forEach(b=>b.pr.estoque=b.novo)}
+    else await ref.update(d);
+    Object.assign(p,d);$("vr").innerHTML="";rVendas();toast(rs.length?"Confirmação desfeita e estoque devolvido":"Confirmação desfeita")}catch(e){toast(msg(e),1)}
 }
 async function vendaManual(cod){
   const v=num($("mv").value);if(!(v>0))return toast("Informe o valor da venda",1);
@@ -427,12 +435,18 @@ function verDups(){{
     return`<div style="background:var(--bg);border-radius:16px;padding:12px;margin-bottom:10px"><div class="hint" style="margin-bottom:6px">Motivo: ${[...mo].join(" e ")}</div>${l.map(i=>`<div class="row" style="margin:0 0 6px"><span><b>${esc(prods[i].nome)}</b><br><small class="hint">${R(prods[i].preco)} · ${prods[i].ativo===false?"Oculto":"Ativo"}</small></span><button class="btn o s" onclick="fecharM('mDup');editar(${i})">Editar</button></div>`).join("")}</div>`}).join("");
   $("mDup").style.display="flex"}}
 
+/* ===== ESTOQUE ===== */
+const EB=5;
+const estTag=p=>p.estoque==null?"":p.estoque<=0?'<span class="tag e">Esgotado</span>':p.estoque<=EB?`<span class="tag g">Estoque baixo: ${p.estoque}</span>`:`<span class="tag">Estoque: ${p.estoque}</span>`;
+function baixasEstoque(p){if(p.estoqueBaixado)return[];const g={};(p.itens||[]).forEach(i=>{if(i.id)g[i.id]=(g[i.id]||0)+(+i.qtd||1)});
+  return Object.entries(g).map(([id,qtd])=>{const pr=prods.find(q=>q.id===id||q._doc===id);return pr&&typeof pr.estoque==="number"?{id,pr,qtd:Math.min(qtd,pr.estoque),novo:Math.max(0,pr.estoque-qtd)}:null}).filter(b=>b&&b.qtd>0)}
+
 /* ===== PRODUTOS ===== */
 function rProds(){
   const q=norm($("bp").value),c=$("fcat").value,s=$("fst").value;
-  const l=prods.map((p,i)=>[p,i]).filter(([p])=>(!q||norm(p.nome+" "+p.marca).includes(q))&&(!c||p.categoria===c)&&(s===""||(s==="a"?p.ativo!==false:s==="o"?p.ativo===false:!p.imagem)));
+  const l=prods.map((p,i)=>[p,i]).filter(([p])=>(!q||norm(p.nome+" "+p.marca).includes(q))&&(!c||p.categoria===c)&&(s===""||(s==="a"?p.ativo!==false:s==="o"?p.ativo===false:s==="e"?(p.estoque!=null&&p.estoque<=EB):!p.imagem)));
   $("pc").textContent=`${l.length} de ${prods.length} produtos`;
-  $("lp").innerHTML=l.length?l.map(([p,i])=>`<div class="pr"><img src="${p.imagem||""}" alt="" onerror="this.style.visibility='hidden'"><div class="i2"><b>${esc(p.nome)}</b><small>${esc([p.marca,catN(p.categoria),R(p.preco)].filter(Boolean).join(" · "))}</small></div>${!p.imagem?'<span class="tag e">Sem imagem</span>':""}${p.badge?`<span class="tag g">${esc(p.badge)}</span>`:""}<label class="sw" title="Visível no site"><input type="checkbox" ${p.ativo!==false?"checked":""} onchange="toggleAtivo(${i},this)" aria-label="Ativar ${esc(p.nome)}"><span></span></label><button class="btn o s" onclick="editar(${i})">Editar</button></div>`).join(""):`<div class="card" style="text-align:center;color:var(--g)">Nenhum produto encontrado.</div>`;
+  $("lp").innerHTML=l.length?l.map(([p,i])=>`<div class="pr"><img src="${p.imagem||""}" alt="" onerror="this.style.visibility='hidden'"><div class="i2"><b>${esc(p.nome)}</b><small>${esc([p.marca,catN(p.categoria),R(p.preco)].filter(Boolean).join(" · "))}</small></div>${!p.imagem?'<span class="tag e">Sem imagem</span>':""}${estTag(p)}${p.badge?`<span class="tag g">${esc(p.badge)}</span>`:""}<label class="sw" title="Visível no site"><input type="checkbox" ${p.ativo!==false?"checked":""} onchange="toggleAtivo(${i},this)" aria-label="Ativar ${esc(p.nome)}"><span></span></label><button class="btn o s" onclick="editar(${i})">Editar</button></div>`).join(""):`<div class="card" style="text-align:center;color:var(--g)">Nenhum produto encontrado.</div>`;
 }
 ["bp","fcat","fst"].forEach(i=>$(i).addEventListener("input",rProds));
 async function toggleAtivo(i,el){const p=prods[i];
@@ -442,7 +456,7 @@ function editar(i){
   edit=i;const p=i>=0?prods[i]:{categoria:allCats()[0],ativo:true,notas:{}};fillCats();
   $("mt").textContent=i>=0?"Editar produto":"Novo produto";$("fn").value=p.nome||"";$("fm").value=p.marca||"";$("fc").value=p.categoria||allCats()[0];
   $("fp").value=p.preco?String(p.preco).replace(".",","):"";$("fa").value=p.precoAntigo?String(p.precoAntigo).replace(".",","):"";
-  $("fv").value=p.ml||"";$("fb").value=p.badge||"";$("fat").value=p.ativo===false?"0":"1";
+  $("fv").value=p.ml||"";$("fe").value=p.estoque==null?"":p.estoque;$("fb").value=p.badge||"";$("fat").value=p.ativo===false?"0":"1";
   $("nt").value=p.notas?.topo||"";$("nc").value=p.notas?.coracao||"";$("nf").value=p.notas?.fundo||"";
   $("fd").value=p.descricao||"";$("fx").value=(p.variacoes||[]).map(v=>`${v.nome}=${String(v.preco).replace(".",",")}`).join("\n");
   selImg(p.imagem||"",p.imagemId);$("bx").style.display=i>=0?"":"none";$("mP").style.display="flex";
@@ -450,9 +464,10 @@ function editar(i){
 async function salvarProd(){
   const nome=$("fn").value.trim(),preco=num($("fp").value);
   if(!nome)return toast("Informe o nome do perfume",1);if(!preco)return toast("Informe o preço",1);
+  const fe=$("fe").value.trim();if(fe!==""&&!/^\d+$/.test(fe))return toast("Estoque: informe só números inteiros",1);
   const variacoes=$("fx").value.split("\n").map(l=>l.split("=")).filter(a=>a[0].trim()&&a[1]).map(a=>({nome:a[0].trim(),preco:num(a[1])}));
   const ant=edit>=0?prods[edit]:null;let id=ant?.id||slug(nome)||"p";if(!ant&&prods.some(p=>p._doc===id))id+="-"+Date.now().toString(36);
-  const p={id,ordem:ant?.ordem??-Date.now(),nome,marca:$("fm").value.trim(),categoria:$("fc").value,preco,precoAntigo:num($("fa").value)||0,ml:$("fv").value.trim(),badge:$("fb").value,ativo:$("fat").value==="1",imagem:imgSel,imagemId:imgId,notas:{topo:$("nt").value.trim(),coracao:$("nc").value.trim(),fundo:$("nf").value.trim()},descricao:$("fd").value.trim(),variacoes};
+  const p={id,ordem:ant?.ordem??-Date.now(),nome,marca:$("fm").value.trim(),categoria:$("fc").value,preco,precoAntigo:num($("fa").value)||0,ml:$("fv").value.trim(),badge:$("fb").value,ativo:$("fat").value==="1",estoque:fe===""?null:parseInt(fe,10),imagem:imgSel,imagemId:imgId,notas:{topo:$("nt").value.trim(),coracao:$("nc").value.trim(),fundo:$("nf").value.trim()},descricao:$("fd").value.trim(),variacoes};
   if(!ant||keyN(ant.nome)!==keyN(nome)){const nm=prods.filter(q=>q!==ant&&nomeSim(q.nome,nome));if(nm.length&&!confirm("Atenção: já existe produto com nome parecido: "+nm.slice(0,3).map(q=>q.nome).join(", ")+".\n\nSalvar mesmo assim?"))return}
   $("bs").disabled=true;$("bs").textContent="Salvando…";
   try{const dc=ant?._doc||id;await db.collection("produtos").doc(dc).set(p,{merge:true});const n={...(ant||{}),...p,_doc:dc};edit>=0?prods[edit]=n:prods.unshift(n);prods.sort(ord);
